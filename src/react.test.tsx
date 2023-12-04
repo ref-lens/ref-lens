@@ -120,8 +120,7 @@ test("can handle discriminated union", () => {
   const App = () => {
     const [proxy] = useLens(lens);
 
-    const child =
-      proxy.type === "loaded" ? <Loaded lens={proxy.toLens()} /> : <Loading />;
+    const child = proxy.type === "loaded" ? <Loaded lens={proxy.toLens()} /> : <Loading />;
 
     return <div data-testid="container">{child}</div>;
   };

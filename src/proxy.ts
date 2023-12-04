@@ -114,18 +114,10 @@ const innerMake = <S extends object, A>(lens: Lens<S, A>): LensProxy<S, A> => {
 
 const cache = new WeakMap<Lens<any, any>, LensProxy<any, any>>();
 
-export function makeProxy<S extends object, A extends Scalar>(
-  lens: Lens<S, A>
-): A;
-export function makeProxy<S extends object, A extends any[]>(
-  lens: Lens<S, A>
-): ArrayLensProxy<S, A>;
-export function makeProxy<S extends object, A extends object>(
-  lens: Lens<S, A>
-): ObjectLensProxy<S, A>;
-export function makeProxy<S extends object, A>(
-  lens: Lens<S, A>
-): LensProxy<S, A>;
+export function makeProxy<S extends object, A extends Scalar>(lens: Lens<S, A>): A;
+export function makeProxy<S extends object, A extends any[]>(lens: Lens<S, A>): ArrayLensProxy<S, A>;
+export function makeProxy<S extends object, A extends object>(lens: Lens<S, A>): ObjectLensProxy<S, A>;
+export function makeProxy<S extends object, A>(lens: Lens<S, A>): LensProxy<S, A>;
 
 export function makeProxy<S extends object, A>(lens: Lens<S, A>) {
   const a = lens.current;
@@ -146,11 +138,7 @@ export function makeProxy<S extends object, A>(lens: Lens<S, A>) {
 
 export const mapArray = <S extends object, A extends any[], B>(
   proxy: ArrayLensProxy<S, A>,
-  fn: (
-    item: LensProxy<S, A[number]>,
-    index: number,
-    array: ArrayLensProxy<S, A>
-  ) => B
+  fn: (item: LensProxy<S, A[number]>, index: number, array: ArrayLensProxy<S, A>) => B
 ): B[] => {
   const bs: B[] = [];
 
@@ -164,11 +152,7 @@ export const mapArray = <S extends object, A extends any[], B>(
 
 export const filterArray = <S extends object, A extends any[]>(
   proxy: ArrayLensProxy<S, A>,
-  fn: (
-    item: LensProxy<S, A[number]>,
-    index: number,
-    array: ArrayLensProxy<S, A>
-  ) => boolean
+  fn: (item: LensProxy<S, A[number]>, index: number, array: ArrayLensProxy<S, A>) => boolean
 ): Array<LensProxy<S, A[number]>> => {
   const result: Array<LensProxy<S, A[number]>> = [];
 

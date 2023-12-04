@@ -159,7 +159,7 @@ test("does not affect lenses of iterables when the value is removed", () => {
   const lens = Lens.fromValue([{ foo: 1 }, { foo: 2 }]);
   const lens0 = lens.prop(0);
 
-  expect(lens0.current?.foo).toBe(1);
+  expect(lens0.current.foo).toBe(1);
 
   lens.update(() => []);
 
@@ -167,7 +167,7 @@ test("does not affect lenses of iterables when the value is removed", () => {
 
   lens.update(() => [{ foo: 3 }]);
 
-  expect(lens0.current?.foo).toBe(3);
+  expect(lens0.current.foo).toBe(3);
 });
 
 test("does not affect subscribers of iterables when the value is removed", () => {
@@ -186,4 +186,19 @@ test("does not affect subscribers of iterables when the value is removed", () =>
   expect(subscriber).toHaveBeenNthCalledWith(1, { foo: 3 });
   expect(subscriber).toHaveBeenNthCalledWith(2, { foo: 10 });
   expect(subscriber).toHaveBeenNthCalledWith(3, undefined);
+});
+
+test("does not update an empty value", () => {
+  const lens = Lens.fromValue([{ foo: 1 }, { foo: 2 }]);
+  const lens0 = lens.prop(0);
+
+  const subscriber = vi.fn();
+
+  lens0.subscribe(() => subscriber(lens0.current));
+
+  lens.update(() => []);
+  lens0.update((prev) => ({ ...prev, foo: 10 }));
+
+  expect(subscriber).toHaveBeenCalledTimes(1);
+  expect(subscriber).toHaveBeenNthCalledWith(1, undefined);
 });

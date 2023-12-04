@@ -88,19 +88,13 @@ test("can filter objects in arrays", () => {
   const lens = Lens.fromValue([{ foo: "bar" }, { foo: "baz" }]);
   const proxy = makeProxy(lens);
 
-  const resultA = filterArray(
-    proxy,
-    (item) => item.foo === "bar" || item.foo === "bif"
-  );
+  const resultA = filterArray(proxy, (item) => item.foo === "bar" || item.foo === "bif");
 
   expect(resultA.length).toBe(1);
 
   lens.update((prev) => prev.concat({ foo: "bif" }));
 
-  const resultB = filterArray(
-    proxy,
-    (item) => item.foo === "bar" || item.foo === "bif"
-  );
+  const resultB = filterArray(proxy, (item) => item.foo === "bar" || item.foo === "bif");
 
   expect(resultB.length).toBe(2);
 });

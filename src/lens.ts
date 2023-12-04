@@ -50,12 +50,7 @@ export class Lens<S extends object, A> implements MutableRefObject<A> {
   #parent: Parent<S>;
   #rootRef: MutableRefObject<S>;
 
-  constructor(
-    getter: GetFn<S, A>,
-    setter: SetFn<S, A>,
-    parent: Parent<S>,
-    rootRef: MutableRefObject<S>
-  ) {
+  constructor(getter: GetFn<S, A>, setter: SetFn<S, A>, parent: Parent<S>, rootRef: MutableRefObject<S>) {
     this.#getter = getter;
     this.#setter = setter;
     this.#parent = parent;
@@ -181,5 +176,4 @@ export class Lens<S extends object, A> implements MutableRefObject<A> {
   }
 }
 
-export const makeLens = <S extends object>(initial: S): Lens<any, S> =>
-  Lens.fromValue(initial);
+export const makeLens = <S extends object>(initial: S): Lens<any, S> => Lens.fromValue(initial);
