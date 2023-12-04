@@ -1,0 +1,40 @@
+{
+  "name": "ref-lens",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Lens-like data structures for React",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ref-lens/ref-lens.git"
+  },
+  "keywords": [
+    "lens",
+    "react"
+  ],
+  "author": {
+    "name": "Gabe Scholz",
+    "email": "github@gabe.pizza"
+  },
+  "license": "MPL-2.0",
+  "bugs": {
+    "url": "https://github.com/ref-lens/ref-lens/issues"
+  },
+  "homepage": "https://github.com/ref-lens/ref-lens#readme",
+  "devDependencies": {
+    "@testing-library/react": "^14.1.2",
+    "@types/react": "^18.2.41",
+    "@types/react-dom": "^18.2.17",
+    "happy-dom": "^12.10.3",
+    "typescript": "^5.3.2",
+    "vite": "^5.0.4",
+    "vitest": "^0.34.6"
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0"
+  }
+}
