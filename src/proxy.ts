@@ -61,14 +61,6 @@ const innerMake = <A>(lens: Lens<A>): LensProxy<A> => {
         return () => lens.current;
       }
 
-      if (key === Symbol.iterator) {
-        return function* () {
-          for (const index in lens.current) {
-            yield makeProxy(lens.prop(index));
-          }
-        };
-      }
-
       if (key === "length") {
         const a = lens.current as any;
         const isArray = Array.isArray(a);
@@ -104,11 +96,48 @@ const innerMake = <A>(lens: Lens<A>): LensProxy<A> => {
     },
 
     ownKeys(_target) {
-      // TODO add toJSON, toLens, toString
       return Reflect.ownKeys(lens.current as object);
     },
 
-    // TODO - implement
+    getOwnPropertyDescriptor(_target, key) {
+      const desc = Reflect.getOwnPropertyDescriptor(lens.current as object, key);
+      if (desc) {
+        desc.configurable = true;
+      }
+      return desc;
+    },
+
+    set() {
+      return false;
+    },
+
+    deleteProperty() {
+      return false;
+    },
+
+    defineProperty() {
+      return false;
+    },
+
+    has(_target, key) {
+      return Reflect.has(lens.current as object, key);
+    },
+
+    isExtensible() {
+      return false;
+    },
+
+    preventExtensions() {
+      return false;
+    },
+
+    getPrototypeOf() {
+      return null;
+    },
+
+    setPrototypeOf() {
+      return false;
+    },
   });
 };
 

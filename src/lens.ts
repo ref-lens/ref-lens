@@ -21,6 +21,8 @@ export type Lens<A> = {
   subscribe(fn: Subscriber): Unsubscribe;
 };
 
+const GetterThrew = Symbol();
+
 const shallowCopy = <T>(obj: T): T => {
   if (Array.isArray(obj)) {
     return [...obj] as T;
@@ -50,7 +52,6 @@ export class RefLens<S extends object, A> implements MutableRefObject<A>, Lens<A
     );
   }
 
-  #cache: WeakMap<object, A> = new WeakMap();
   #subscribers: Set<Subscriber> = new Set();
   #children: { [K in keyof A]?: RefLens<S, A[K]> } = {};
   #getter: GetFn<S, A>;
@@ -66,7 +67,7 @@ export class RefLens<S extends object, A> implements MutableRefObject<A>, Lens<A
   }
 
   get current(): A {
-    return this.#cachedGetter(this.#rootRef.current);
+    return this.#getter(this.#rootRef.current);
   }
 
   set current(value: A) {
@@ -84,16 +85,16 @@ export class RefLens<S extends object, A> implements MutableRefObject<A>, Lens<A
     if (!lens) {
       const parent: Parent<S> = {
         notifyUp: () => this.#notifyUp(),
-        cachedGetter: (state) => this.#cachedGetter(state),
+        cachedGetter: (state) => this.#getter(state),
       };
 
       lens = new RefLens(
         (state) => {
-          const current = this.#cachedGetter(state);
+          const current = this.#getter(state);
           return current[key];
         },
         (state, value) => {
-          const current = this.#cachedGetter(state);
+          const current = this.#getter(state);
           const copy = shallowCopy(current);
 
           copy[key] = value;
@@ -113,7 +114,22 @@ export class RefLens<S extends object, A> implements MutableRefObject<A>, Lens<A
   update(fn: (value: A) => A): void;
   update(fn: (value: A) => Promise<A>): Promise<void>;
   update(fn: (value: A) => A | Promise<A>): void | Promise<void> {
-    const next = fn(this.current);
+    let current: A | typeof GetterThrew;
+
+    /**
+     * Wrap the getter in a try/catch because it may throw an error.
+     */
+    try {
+      current = this.current;
+    } catch {
+      current = GetterThrew;
+    }
+
+    if (current === GetterThrew) {
+      return;
+    }
+
+    const next = fn(current);
 
     if (next instanceof Promise) {
       return next.then((value) => {
@@ -138,8 +154,8 @@ export class RefLens<S extends object, A> implements MutableRefObject<A>, Lens<A
      * This can happen in lists where a getter has been removed.
      */
     try {
-      const prevA = this.#cachedGetter(prev);
-      const nextA = this.#cachedGetter(next);
+      const prevA = this.#getter(prev);
+      const nextA = this.#getter(next);
 
       /**
        * If the value has not changed, then we don't need to notify.
@@ -161,21 +177,6 @@ export class RefLens<S extends object, A> implements MutableRefObject<A>, Lens<A
   #notifyUp() {
     this.#notifySelf();
     this.#parent?.notifyUp();
-  }
-
-  #cachedGetter(root: S): A {
-    /**
-     * Get the parent state as a key for the cache.
-     */
-    const key = this.#parent.cachedGetter(root);
-    let cached = this.#cache.get(key);
-
-    if (!cached) {
-      cached = this.#getter(root);
-      this.#cache.set(key, cached);
-    }
-
-    return cached;
   }
 
   #notifySelf() {

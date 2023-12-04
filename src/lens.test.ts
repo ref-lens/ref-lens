@@ -188,9 +188,11 @@ test("does not affect subscribers of iterables when the value is removed", () =>
   expect(subscriber).toHaveBeenNthCalledWith(3, undefined);
 });
 
-test.todo("does not update an empty value", () => {
-  const lens = RefLens.fromValue([{ foo: 1 }, { foo: 2 }]);
+test("does not update an empty value", () => {
+  const lens = RefLens.fromValue([{ foo: { value: 1 } }, { foo: { value: 2 } }]);
   const lens0 = lens.prop(0);
+  const lens1 = lens.prop(1);
+  const lens0Foo = lens0.prop("foo");
 
   const subscriber = vi.fn();
 
@@ -201,8 +203,14 @@ test.todo("does not update an empty value", () => {
   /**
    * Should not be called because there is no value.
    */
-  lens0.update((prev) => ({ ...prev, foo: 10 }));
+  lens0Foo.update((prev) => ({ ...prev, value: 10 }));
 
   expect(subscriber).toHaveBeenCalledTimes(1);
   expect(subscriber).toHaveBeenNthCalledWith(1, undefined);
+
+  expect(lens.current).toEqual([]);
+
+  lens1.update((prev) => ({ ...prev, foo: { value: 10 } }));
+
+  expect(lens.current).toEqual([undefined, { foo: { value: 10 } }]);
 });
