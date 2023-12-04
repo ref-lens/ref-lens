@@ -2,7 +2,7 @@ import React from "react";
 import { type Lens } from "./lens";
 import { makeProxy, type LensProxy } from "./proxy";
 
-export const useLens = <A>(lens: Lens<any, A>): [LensProxy<any, A>, (fn: (prev: A) => A) => void] => {
+export const useLens = <A>(lens: Lens<A>): [LensProxy<A>, (fn: (prev: A) => A) => void] => {
   /**
    * Can't use `useSyncExternalStore` because `lens` and the return
    * value of `proxyLensValue(lens)` both never change.

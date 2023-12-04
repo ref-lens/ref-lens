@@ -1,10 +1,10 @@
 // @vitest-environment happy-dom
 
 import { act, render, renderHook } from "@testing-library/react";
-import { mapArray } from "./proxy";
-import { Lens, makeLens } from "./lens";
 import React from "react";
+import { mapArray } from "./proxy";
 import { useLens } from "./react";
+import { Lens, makeLens } from "./lens";
 
 test("subscribes to changes", () => {
   const lens = makeLens({ foo: { bar: { baz: 0 } } });
@@ -46,7 +46,7 @@ test("only re-renders values in a list if their lens value has changed", () => {
 
   const lens = makeLens({ foo: [{ bar: 0 }, { bar: 5 }, { bar: 10 }] });
 
-  const Child = React.memo((props: { lens: Lens<any, { bar: number }> }) => {
+  const Child = React.memo((props: { lens: Lens<{ bar: number }> }) => {
     const [value] = useLens(props.lens);
 
     renderCount++;
@@ -107,7 +107,7 @@ test("can handle discriminated union", () => {
 
   const logValue = vi.fn();
 
-  const Loaded = (props: { lens: Lens<any, Loaded> }) => {
+  const Loaded = (props: { lens: Lens<Loaded> }) => {
     const [proxy] = useLens(props.lens);
 
     logValue(proxy.value);
@@ -136,4 +136,66 @@ test("can handle discriminated union", () => {
 
   expect(getByTestId("container").textContent).toEqual("Loading...");
   expect(logValue).toHaveBeenCalledTimes(1);
+});
+
+test("renders a list of values", () => {
+  const lens = makeLens([{ value: 0 }, { value: 1 }, { value: 2 }]);
+
+  const App = () => {
+    const [proxy] = useLens(lens);
+
+    return (
+      <div data-testid="container">
+        {mapArray(proxy, (item, index) => (
+          <div key={item.value}>{item.value}</div>
+        ))}
+      </div>
+    );
+  };
+
+  const { getByTestId } = render(<App />);
+
+  expect(getByTestId("container").textContent).toEqual("012");
+
+  act(() => lens.update((prev) => [...prev, { value: 3 }]));
+
+  expect(getByTestId("container").textContent).toEqual("0123");
+
+  act(() => lens.update((prev) => []));
+
+  expect(getByTestId("container").textContent).toEqual("");
+});
+
+test("renders lenses from a list of lenses", () => {
+  const lens = makeLens([{ foo: { value: 0 } }, { foo: { value: 1 } }, { foo: { value: 2 } }]);
+
+  const App = () => {
+    const [proxy] = useLens(lens);
+
+    return (
+      <div data-testid="container">
+        {mapArray(proxy, (item, index) => (
+          <Child key={index} lens={item.toLens()} />
+        ))}
+      </div>
+    );
+  };
+
+  const Child = (props: { lens: Lens<{ foo: { value: number } }> }) => {
+    const [proxy] = useLens(props.lens);
+
+    return <div>{proxy.foo.value}</div>;
+  };
+
+  const { getByTestId } = render(<App />);
+
+  expect(getByTestId("container").textContent).toEqual("012");
+
+  act(() => lens.update((prev) => [...prev, { foo: { value: 3 } }]));
+
+  expect(getByTestId("container").textContent).toEqual("0123");
+
+  act(() => lens.update((prev) => []));
+
+  expect(getByTestId("container").textContent).toEqual("");
 });

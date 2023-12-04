@@ -13,6 +13,14 @@ type Parent<S extends object> = {
   cachedGetter(state: S): any;
 };
 
+export type Lens<A> = {
+  current: A;
+  prop<K extends keyof A>(key: K): Lens<A[K]>;
+  update(fn: (value: A) => A): void;
+  update(fn: (value: A) => Promise<A>): Promise<void>;
+  subscribe(fn: Subscriber): Unsubscribe;
+};
+
 const shallowCopy = <T>(obj: T): T => {
   if (Array.isArray(obj)) {
     return [...obj] as T;
@@ -21,12 +29,12 @@ const shallowCopy = <T>(obj: T): T => {
   }
 };
 
-export class Lens<S extends object, A> implements MutableRefObject<A> {
-  static fromValue<S extends object>(current: S): Lens<S, S> {
-    return Lens.fromRef({ current });
+export class RefLens<S extends object, A> implements MutableRefObject<A>, Lens<A> {
+  static fromValue<S extends object>(current: S): Lens<S> {
+    return RefLens.fromRef({ current });
   }
 
-  static fromRef<S extends object>(rootRef: MutableRefObject<S>): Lens<S, S> {
+  static fromRef<S extends object>(rootRef: MutableRefObject<S>): Lens<S> {
     const rootParent: Parent<S> = {
       notifyUp() {},
       cachedGetter(root) {
@@ -34,7 +42,7 @@ export class Lens<S extends object, A> implements MutableRefObject<A> {
       },
     };
 
-    return new Lens(
+    return new RefLens(
       (state) => state,
       (state, value) => value,
       rootParent,
@@ -44,7 +52,7 @@ export class Lens<S extends object, A> implements MutableRefObject<A> {
 
   #cache: WeakMap<object, A> = new WeakMap();
   #subscribers: Set<Subscriber> = new Set();
-  #children: { [K in keyof A]?: Lens<S, A[K]> } = {};
+  #children: { [K in keyof A]?: RefLens<S, A[K]> } = {};
   #getter: GetFn<S, A>;
   #setter: SetFn<S, A>;
   #parent: Parent<S>;
@@ -70,7 +78,7 @@ export class Lens<S extends object, A> implements MutableRefObject<A> {
     this.#parent.notifyUp();
   }
 
-  prop<K extends keyof A>(key: K): Lens<S, A[K]> {
+  prop<K extends keyof A>(key: K): Lens<A[K]> {
     let lens = this.#children[key];
 
     if (!lens) {
@@ -79,7 +87,7 @@ export class Lens<S extends object, A> implements MutableRefObject<A> {
         cachedGetter: (state) => this.#cachedGetter(state),
       };
 
-      lens = new Lens(
+      lens = new RefLens(
         (state) => {
           const current = this.#cachedGetter(state);
           return current[key];
@@ -105,20 +113,11 @@ export class Lens<S extends object, A> implements MutableRefObject<A> {
   update(fn: (value: A) => A): void;
   update(fn: (value: A) => Promise<A>): Promise<void>;
   update(fn: (value: A) => A | Promise<A>): void | Promise<void> {
-    let current: A;
-
-    try {
-      current = this.current;
-    } catch {
-      return;
-    }
-
-    const next = fn(current);
+    const next = fn(this.current);
 
     if (next instanceof Promise) {
       return next.then((value) => {
         this.current = value;
-        return;
       });
     } else {
       this.current = next;
@@ -184,4 +183,4 @@ export class Lens<S extends object, A> implements MutableRefObject<A> {
   }
 }
 
-export const makeLens = <S extends object>(initial: S): Lens<any, S> => Lens.fromValue(initial);
+export const makeLens = <S extends object>(initial: S): Lens<S> => RefLens.fromValue(initial);

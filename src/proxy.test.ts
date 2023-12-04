@@ -1,14 +1,14 @@
-import { Lens } from "./lens";
+import { RefLens } from "./lens";
 import { filterArray, makeProxy, mapArray } from "./proxy";
 
 test("wraps children in lenses", () => {
-  const lens = Lens.fromValue({ foo: "bar" });
+  const lens = RefLens.fromValue({ foo: "bar" });
   const proxy = makeProxy(lens);
   expect(proxy.foo).toEqual("bar");
 });
 
 test("works with Array.from", () => {
-  const lens = Lens.fromValue(["foo", "bar"]);
+  const lens = RefLens.fromValue(["foo", "bar"]);
   const proxy = makeProxy(lens);
 
   const [foo, bar] = Array.from(proxy);
@@ -18,7 +18,7 @@ test("works with Array.from", () => {
 });
 
 test("can iterate a list and return values to a lens", () => {
-  const lens = Lens.fromValue(["foo", "bar"]);
+  const lens = RefLens.fromValue(["foo", "bar"]);
   const proxy = makeProxy(lens);
 
   const result: string[] = [];
@@ -31,20 +31,20 @@ test("can iterate a list and return values to a lens", () => {
 });
 
 test("can transform back into the same lens", () => {
-  const lens = Lens.fromValue({ foo: "bar" });
+  const lens = RefLens.fromValue({ foo: "bar" });
   const proxy = makeProxy(lens);
   expect(proxy.toLens()).toBe(lens);
 });
 
 test("scalars are not wrapped in proxies", () => {
-  const lens = Lens.fromValue({ foo: "bar" });
+  const lens = RefLens.fromValue({ foo: "bar" });
   const proxy = makeProxy(lens);
 
   expect(proxy.foo).toBe(lens.prop("foo").current);
 });
 
 test("can be converted into a primitive", () => {
-  const lens = Lens.fromValue({ foo: 5 });
+  const lens = RefLens.fromValue({ foo: 5 });
   const proxy = makeProxy(lens);
 
   expect(proxy.foo + 10).toEqual(15);
@@ -55,7 +55,7 @@ test("can be converted into a primitive", () => {
 });
 
 test("can map objects in arrays", () => {
-  const lens = Lens.fromValue([{ foo: "bar" }]);
+  const lens = RefLens.fromValue([{ foo: "bar" }]);
   const proxy = makeProxy(lens);
 
   const result = mapArray(proxy, (item) => item.foo);
@@ -65,7 +65,7 @@ test("can map objects in arrays", () => {
 });
 
 test("can map arrays in arrays", () => {
-  const lens = Lens.fromValue([["foo", "bar"]]);
+  const lens = RefLens.fromValue([["foo", "bar"]]);
   const proxy = makeProxy(lens);
 
   const result = mapArray(proxy, (item) => Array.from(item));
@@ -75,7 +75,7 @@ test("can map arrays in arrays", () => {
 });
 
 test("can map arrays in objects", () => {
-  const lens = Lens.fromValue({ foo: ["bar", "baz"] });
+  const lens = RefLens.fromValue({ foo: ["bar", "baz"] });
   const proxy = makeProxy(lens);
 
   const result = mapArray(proxy.foo, (item) => item);
@@ -85,7 +85,7 @@ test("can map arrays in objects", () => {
 });
 
 test("can filter objects in arrays", () => {
-  const lens = Lens.fromValue([{ foo: "bar" }, { foo: "baz" }]);
+  const lens = RefLens.fromValue([{ foo: "bar" }, { foo: "baz" }]);
   const proxy = makeProxy(lens);
 
   const resultA = filterArray(proxy, (item) => item.foo === "bar" || item.foo === "bif");
@@ -100,7 +100,7 @@ test("can filter objects in arrays", () => {
 });
 
 test("keeps the same lens reference through iteration", () => {
-  const lens = Lens.fromValue([{ foo: "bar" }, { foo: "baz" }]);
+  const lens = RefLens.fromValue([{ foo: "bar" }, { foo: "baz" }]);
   const proxy = makeProxy(lens);
 
   const result = mapArray(proxy, (item) => item.toLens());
@@ -110,7 +110,7 @@ test("keeps the same lens reference through iteration", () => {
 });
 
 test("keeps the same reference to an index when the list is updated", () => {
-  const lens = Lens.fromValue([{ foo: "bar" }, { foo: "baz" }]);
+  const lens = RefLens.fromValue([{ foo: "bar" }, { foo: "baz" }]);
   const lens0 = lens.prop(0);
   const proxy = makeProxy(lens0);
 
@@ -122,7 +122,7 @@ test("keeps the same reference to an index when the list is updated", () => {
 });
 
 test("reacts to mutated objects", () => {
-  const lens = Lens.fromValue({ foo: ["bar"] });
+  const lens = RefLens.fromValue({ foo: ["bar"] });
   const fooLens = lens.prop("foo");
   const proxy = makeProxy(lens);
 
@@ -135,7 +135,7 @@ test("reacts to mutated objects", () => {
 });
 
 test("can proxy scalar values", () => {
-  const lens = Lens.fromValue({ foo: { bar: { baz: 0 } } });
+  const lens = RefLens.fromValue({ foo: { bar: { baz: 0 } } });
   const bazLens = lens.prop("foo").prop("bar").prop("baz");
 
   const proxy = makeProxy(bazLens);

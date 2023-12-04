@@ -2,27 +2,27 @@ import type { Lens } from "./lens";
 
 type Scalar = string | number | bigint | boolean | null | undefined;
 
-type Base<S extends object, A> = {
+type Base<A> = {
   toString(): string;
   toJSON(): A;
-  toLens(): Lens<S, A>;
+  toLens(): Lens<A>;
 };
 
-type ArrayLensProxy<S extends object, A extends any[]> = {
-  [index: number]: LensProxy<S, A[number]>;
-  [Symbol.iterator](): Iterator<LensProxy<S, A[number]>>;
+type ArrayLensProxy<A extends any[]> = {
+  [index: number]: LensProxy<A[number]>;
+  [Symbol.iterator](): Iterator<LensProxy<A[number]>>;
   length: number;
-} & Base<S, A>;
+} & Base<A>;
 
-type ObjectLensProxy<S extends object, A extends object> = {
-  [K in keyof A]: LensProxy<S, A[K]>;
-} & Base<S, A>;
+type ObjectLensProxy<A extends object> = {
+  [K in keyof A]: LensProxy<A[K]>;
+} & Base<A>;
 
 // prettier-ignore
-export type LensProxy<S extends object, A> =
+export type LensProxy<A> =
   A extends Scalar ? A :
-  A extends any[] ? ArrayLensProxy<S, A> :
-  A extends object ? ObjectLensProxy<S, A> :
+  A extends any[] ? ArrayLensProxy<A> :
+  A extends object ? ObjectLensProxy<A> :
   never;
 
 const isScalar = <A>(value: A): value is A & Scalar => {
@@ -36,7 +36,7 @@ const isScalar = <A>(value: A): value is A & Scalar => {
   );
 };
 
-const innerMake = <S extends object, A>(lens: Lens<S, A>): LensProxy<S, A> => {
+const innerMake = <A>(lens: Lens<A>): LensProxy<A> => {
   return new Proxy(function () {} as any, {
     apply(_target, thisArg, args) {
       return (lens.current as any).apply(thisArg, args);
@@ -112,14 +112,14 @@ const innerMake = <S extends object, A>(lens: Lens<S, A>): LensProxy<S, A> => {
   });
 };
 
-const cache = new WeakMap<Lens<any, any>, LensProxy<any, any>>();
+const cache = new WeakMap<Lens<any>, LensProxy<any>>();
 
-export function makeProxy<S extends object, A extends Scalar>(lens: Lens<S, A>): A;
-export function makeProxy<S extends object, A extends any[]>(lens: Lens<S, A>): ArrayLensProxy<S, A>;
-export function makeProxy<S extends object, A extends object>(lens: Lens<S, A>): ObjectLensProxy<S, A>;
-export function makeProxy<S extends object, A>(lens: Lens<S, A>): LensProxy<S, A>;
+export function makeProxy<S extends object, A extends Scalar>(lens: Lens<A>): A;
+export function makeProxy<S extends object, A extends any[]>(lens: Lens<A>): ArrayLensProxy<A>;
+export function makeProxy<S extends object, A extends object>(lens: Lens<A>): ObjectLensProxy<A>;
+export function makeProxy<S extends object, A>(lens: Lens<A>): LensProxy<A>;
 
-export function makeProxy<S extends object, A>(lens: Lens<S, A>) {
+export function makeProxy<A>(lens: Lens<A>) {
   const a = lens.current;
 
   if (isScalar(a)) {
@@ -136,9 +136,9 @@ export function makeProxy<S extends object, A>(lens: Lens<S, A>) {
   return proxy;
 }
 
-export const mapArray = <S extends object, A extends any[], B>(
-  proxy: ArrayLensProxy<S, A>,
-  fn: (item: LensProxy<S, A[number]>, index: number, array: ArrayLensProxy<S, A>) => B
+export const mapArray = <A extends any[], B>(
+  proxy: ArrayLensProxy<A>,
+  fn: (item: LensProxy<A[number]>, index: number, array: ArrayLensProxy<A>) => B
 ): B[] => {
   const bs: B[] = [];
 
@@ -150,11 +150,11 @@ export const mapArray = <S extends object, A extends any[], B>(
   return bs;
 };
 
-export const filterArray = <S extends object, A extends any[]>(
-  proxy: ArrayLensProxy<S, A>,
-  fn: (item: LensProxy<S, A[number]>, index: number, array: ArrayLensProxy<S, A>) => boolean
-): Array<LensProxy<S, A[number]>> => {
-  const result: Array<LensProxy<S, A[number]>> = [];
+export const filterArray = <A extends any[]>(
+  proxy: ArrayLensProxy<A>,
+  fn: (item: LensProxy<A[number]>, index: number, array: ArrayLensProxy<A>) => boolean
+): Array<LensProxy<A[number]>> => {
+  const result: Array<LensProxy<A[number]>> = [];
 
   for (let i = 0; i < proxy.length; i++) {
     const keep = fn(proxy[i], i, proxy);
