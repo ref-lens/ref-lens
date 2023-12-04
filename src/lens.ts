@@ -57,35 +57,35 @@ export class Lens<S extends object, A> implements MutableRefObject<A> {
     this.#rootRef = rootRef;
   }
 
-  public get current(): A {
-    return this.cachedGetter(this.#rootRef.current);
+  get current(): A {
+    return this.#cachedGetter(this.#rootRef.current);
   }
 
-  public set current(value: A) {
+  set current(value: A) {
     const prev = this.#rootRef.current;
     const next = this.#setter(prev, value);
 
     this.#rootRef.current = next;
-    this.notifyDown(prev, next);
+    this.#notifyDown(prev, next);
     this.#parent.notifyUp();
   }
 
-  public prop<K extends keyof A>(key: K): Lens<S, A[K]> {
+  prop<K extends keyof A>(key: K): Lens<S, A[K]> {
     let lens = this.#children[key];
 
-    const parent: Parent<S> = {
-      notifyUp: () => this.notifyUp(),
-      cachedGetter: (state) => this.cachedGetter(state),
-    };
-
     if (!lens) {
+      const parent: Parent<S> = {
+        notifyUp: () => this.#notifyUp(),
+        cachedGetter: (state) => this.#cachedGetter(state),
+      };
+
       lens = new Lens(
         (state) => {
-          const current = this.cachedGetter(state);
+          const current = this.#cachedGetter(state);
           return current[key];
         },
         (state, value) => {
-          const current = this.cachedGetter(state);
+          const current = this.#cachedGetter(state);
           const copy = shallowCopy(current);
 
           copy[key] = value;
@@ -102,10 +102,18 @@ export class Lens<S extends object, A> implements MutableRefObject<A> {
     return lens;
   }
 
-  public update(fn: (value: A) => A): void;
-  public update(fn: (value: A) => Promise<A>): Promise<void>;
-  public update(fn: (value: A) => A | Promise<A>): void | Promise<void> {
-    const next = fn(this.current);
+  update(fn: (value: A) => A): void;
+  update(fn: (value: A) => Promise<A>): Promise<void>;
+  update(fn: (value: A) => A | Promise<A>): void | Promise<void> {
+    let current: A;
+
+    try {
+      current = this.current;
+    } catch {
+      return;
+    }
+
+    const next = fn(current);
 
     if (next instanceof Promise) {
       return next.then((value) => {
@@ -117,7 +125,7 @@ export class Lens<S extends object, A> implements MutableRefObject<A> {
     }
   }
 
-  public subscribe(fn: Subscriber): Unsubscribe {
+  subscribe(fn: Subscriber): Unsubscribe {
     this.#subscribers.add(fn);
 
     return () => {
@@ -125,14 +133,14 @@ export class Lens<S extends object, A> implements MutableRefObject<A> {
     };
   }
 
-  protected notifyDown(prev: S, next: S) {
+  #notifyDown(prev: S, next: S) {
     /**
      * Wrap this in a try/catch because the getter may throw an error.
      * This can happen in lists where a getter has been removed.
      */
     try {
-      const prevA = this.cachedGetter(prev);
-      const nextA = this.cachedGetter(next);
+      const prevA = this.#cachedGetter(prev);
+      const nextA = this.#cachedGetter(next);
 
       /**
        * If the value has not changed, then we don't need to notify.
@@ -145,18 +153,18 @@ export class Lens<S extends object, A> implements MutableRefObject<A> {
 
       if (!child) continue;
 
-      child.notifyDown(prev, next);
+      child.#notifyDown(prev, next);
     }
 
-    this.notifySelf();
+    this.#notifySelf();
   }
 
-  private notifyUp() {
-    this.notifySelf();
+  #notifyUp() {
+    this.#notifySelf();
     this.#parent?.notifyUp();
   }
 
-  private cachedGetter(root: S): A {
+  #cachedGetter(root: S): A {
     /**
      * Get the parent state as a key for the cache.
      */
@@ -171,7 +179,7 @@ export class Lens<S extends object, A> implements MutableRefObject<A> {
     return cached;
   }
 
-  private notifySelf() {
+  #notifySelf() {
     this.#subscribers.forEach((fn) => fn());
   }
 }

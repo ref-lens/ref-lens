@@ -197,6 +197,10 @@ test("does not update an empty value", () => {
   lens0.subscribe(() => subscriber(lens0.current));
 
   lens.update(() => []);
+
+  /**
+   * Should not be called because there is no value.
+   */
   lens0.update((prev) => ({ ...prev, foo: 10 }));
 
   expect(subscriber).toHaveBeenCalledTimes(1);
