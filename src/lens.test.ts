@@ -159,7 +159,7 @@ test("does not affect lenses of iterables when the value is removed", () => {
   const lens = Lens.fromValue([{ foo: 1 }, { foo: 2 }]);
   const lens0 = lens.prop(0);
 
-  expect(lens0.current.foo).toBe(1);
+  expect(lens0.current?.foo).toBe(1);
 
   lens.update(() => []);
 
@@ -167,7 +167,7 @@ test("does not affect lenses of iterables when the value is removed", () => {
 
   lens.update(() => [{ foo: 3 }]);
 
-  expect(lens0.current.foo).toBe(3);
+  expect(lens0.current?.foo).toBe(3);
 });
 
 test("does not affect subscribers of iterables when the value is removed", () => {
