@@ -146,7 +146,7 @@ test("can proxy scalar values", () => {
 
 test("can descriminate a union back into a lens", () => {
   type A = { type: "a"; foo: string };
-  type B = { type: "b"; bar: string };
+  type B = { type: "b"; bar: number };
   type AorB = A | B;
 
   const lens = RefLens.fromValue<AorB>({ type: "a", foo: "bar" });

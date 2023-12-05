@@ -12,17 +12,17 @@ type ArrayLensProxy<A extends any[]> = {
   [index: number]: LensProxy<A[number]>;
   [Symbol.iterator](): Iterator<LensProxy<A[number]>>;
   length: number;
-};
+} & BaseProxy<A>;
 
 type ObjectLensProxy<A extends object> = {
   [K in keyof A]: LensProxy<A[K]>;
-};
+} & BaseProxy<A>;
 
 // prettier-ignore
 export type LensProxy<A> =
   A extends Scalar ? A :
-  A extends any[] ? ArrayLensProxy<A> & BaseProxy<A> :
-  A extends object ? ObjectLensProxy<A> & BaseProxy<A> :
+  A extends any[] ? ArrayLensProxy<A> :
+  A extends object ? ObjectLensProxy<A> :
   never;
 
 const isScalar = <A>(value: A): value is A & Scalar => {
