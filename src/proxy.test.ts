@@ -1,3 +1,4 @@
+import assert from "node:assert";
 import { RefLens } from "./lens";
 import { filterArray, makeProxy, mapArray } from "./proxy";
 
@@ -141,4 +142,30 @@ test("can proxy scalar values", () => {
   const proxy = makeProxy(bazLens);
 
   expect(proxy === 0).toBe(true);
+});
+
+test("can descriminate a union back into a lens", () => {
+  type A = { type: "a"; foo: string };
+  type B = { type: "b"; bar: string };
+  type AorB = A | B;
+
+  const lens = RefLens.fromValue<AorB>({ type: "a", foo: "bar" });
+  const proxy = makeProxy(lens);
+
+  // @ts-expect-error
+  lens.prop("foo");
+
+  if (proxy.type === "a") {
+    proxy.toLens().prop("foo");
+
+    // @ts-expect-error
+    proxy.toLens().prop("bar");
+  }
+
+  if (proxy.type === "b") {
+    proxy.toLens().prop("bar");
+
+    // @ts-expect-error
+    proxy.toLens().prop("foo");
+  }
 });
