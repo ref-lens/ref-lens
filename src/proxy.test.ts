@@ -1,4 +1,3 @@
-import assert from "node:assert";
 import { RefLens } from "./lens";
 import { filterArray, makeProxy, mapArray } from "./proxy";
 
@@ -93,7 +92,7 @@ test("can filter objects in arrays", () => {
 
   expect(resultA.length).toBe(1);
 
-  lens.update((prev) => prev.concat({ foo: "bif" }));
+  lens.set((prev) => prev.concat({ foo: "bif" }));
 
   const resultB = filterArray(proxy, (item) => item.foo === "bar" || item.foo === "bif");
 
@@ -117,7 +116,7 @@ test("keeps the same reference to an index when the list is updated", () => {
 
   expect(proxy.foo).toBe("bar");
 
-  lens.update((prev) => [{ foo: "bif", ...prev }]);
+  lens.set((prev) => [{ foo: "bif", ...prev }]);
 
   expect(proxy.foo).toBe("bif");
 });
@@ -130,7 +129,7 @@ test("reacts to mutated objects", () => {
   expect(proxy.foo.toLens()).toBe(fooLens);
   expect(proxy.foo.toJSON()).toEqual(["bar"]);
 
-  fooLens.update((prev) => prev.concat("baz"));
+  fooLens.set((prev) => prev.concat("baz"));
 
   expect(proxy.foo.toJSON()).toEqual(["bar", "baz"]);
 });
@@ -155,17 +154,20 @@ test("can descriminate a union back into a lens", () => {
   // @ts-expect-error
   lens.prop("foo");
 
-  if (proxy.type === "a") {
-    proxy.toLens().prop("foo");
-
-    // @ts-expect-error
-    proxy.toLens().prop("bar");
-  }
-
   if (proxy.type === "b") {
     proxy.toLens().prop("bar");
 
     // @ts-expect-error
     proxy.toLens().prop("foo");
+  }
+
+  if (proxy.type === "a") {
+    const fooLens = proxy.toLens().prop("foo");
+
+    expect(fooLens.current).toBe("bar");
+    expect(proxy.foo).toBe("bar");
+
+    // @ts-expect-error
+    proxy.toLens().prop("bar");
   }
 });

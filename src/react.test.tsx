@@ -14,14 +14,14 @@ test("subscribes to changes", () => {
   const { result: barResult } = renderHook(() => useLens(barLens));
   const { result: bazResult } = renderHook(() => useLens(bazLens));
 
-  const [barValueA, barUpdate] = barResult.current;
-  const [bazValueA, bazUpdate] = bazResult.current;
+  const [barValueA, setBar] = barResult.current;
+  const [bazValueA, setBaz] = bazResult.current;
 
   expect(barValueA.toJSON()).toEqual({ baz: 0 });
   expect(bazValueA).toEqual(0);
 
   act(() => {
-    bazUpdate((prev) => prev + 1);
+    setBaz((prev) => prev + 1);
   });
 
   const [barValueB] = barResult.current;
@@ -31,7 +31,7 @@ test("subscribes to changes", () => {
   expect(bazValueB).toEqual(1);
 
   act(() => {
-    barUpdate((prev) => ({ baz: prev.baz + 1 }));
+    setBar((prev) => ({ baz: prev.baz + 1 }));
   });
 
   const [barValueC] = barResult.current;
@@ -79,13 +79,13 @@ test("only re-renders values in a list if their lens value has changed", () => {
       .prop("foo")
       .prop(0)
       .prop("bar")
-      .update((prev) => prev + 1);
+      .set((prev) => prev + 1);
   });
 
   expect(renderCount).toEqual(4);
 
   act(() => {
-    lens.prop("foo").update((arr) => {
+    lens.prop("foo").set((arr) => {
       let [first, second, ...rest] = arr;
 
       first = { bar: first.bar + 1 };
@@ -131,7 +131,7 @@ test("can handle discriminated union", () => {
   expect(logValue).toHaveBeenCalledTimes(1);
 
   act(() => {
-    lens.update(() => ({ type: "loading" }));
+    lens.set(() => ({ type: "loading" }));
   });
 
   expect(getByTestId("container").textContent).toEqual("Loading...");
@@ -157,11 +157,11 @@ test("renders a list of values", () => {
 
   expect(getByTestId("container").textContent).toEqual("012");
 
-  act(() => lens.update((prev) => [...prev, { value: 3 }]));
+  act(() => lens.set((prev) => [...prev, { value: 3 }]));
 
   expect(getByTestId("container").textContent).toEqual("0123");
 
-  act(() => lens.update((prev) => []));
+  act(() => lens.set((prev) => []));
 
   expect(getByTestId("container").textContent).toEqual("");
 });
@@ -191,11 +191,11 @@ test("renders lenses from a list of lenses", () => {
 
   expect(getByTestId("container").textContent).toEqual("012");
 
-  act(() => lens.update((prev) => [...prev, { foo: { value: 3 } }]));
+  act(() => lens.set((prev) => [...prev, { foo: { value: 3 } }]));
 
   expect(getByTestId("container").textContent).toEqual("0123");
 
-  act(() => lens.update((prev) => []));
+  act(() => lens.set((prev) => []));
 
   expect(getByTestId("container").textContent).toEqual("");
 });

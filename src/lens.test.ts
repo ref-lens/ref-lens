@@ -12,7 +12,7 @@ test("can update the root state", () => {
   const rootRef = { current: { foo: "bar" } };
   const lens = RefLens.fromRef(rootRef);
 
-  lens.current = { foo: "baz" };
+  lens.set(() => ({ foo: "baz" }));
 
   expect(rootRef.current).toEqual({ foo: "baz" });
 });
@@ -21,7 +21,7 @@ test("can refine the lens", () => {
   const rootRef = { current: { foo: { bar: { baz: 0 } } } };
   const lens = RefLens.fromRef(rootRef).prop("foo").prop("bar").prop("baz");
 
-  lens.update((prev) => prev + 5);
+  lens.set((prev) => prev + 5);
 
   expect(rootRef.current).toEqual({ foo: { bar: { baz: 5 } } });
 });
@@ -48,10 +48,10 @@ test("can subscribe to all changes", () => {
   pingLens.subscribe(() => pingSubscriber(pingLens.current));
   pongLens.subscribe(() => pongSubscriber(pongLens.current));
 
-  rootLens.update((prev) => ({ ...prev, foo: { bar: { baz: 5 } } }));
-  bazLens.current = 10;
-  pingLens.current = { pong: "world" };
-  bazLens.current = 10;
+  rootLens.set((prev) => ({ ...prev, foo: { bar: { baz: 5 } } }));
+  bazLens.set(() => 10);
+  pingLens.set(() => ({ pong: "world" }));
+  bazLens.set(() => 10);
 
   expect(rootSubscriber).toHaveBeenCalledTimes(4);
   expect(rootSubscriber).toHaveBeenNthCalledWith(1, {
@@ -103,7 +103,7 @@ test("with lists", () => {
   fooLens.subscribe(() => fooSubscriber(fooLens.current));
   firstBarLens.subscribe(() => firstBarSubscriber(firstBarLens.current));
 
-  rootLens.update((prev) => {
+  rootLens.set((prev) => {
     return {
       ...prev,
       foo: {
@@ -111,8 +111,8 @@ test("with lists", () => {
       },
     };
   });
-  fooLens.current = { bar: [] };
-  firstBarLens.current = 456;
+  fooLens.set(() => ({ bar: [] }));
+  firstBarLens.set(() => 456);
 
   expect(barSubscriber).toHaveBeenCalledTimes(3);
   expect(barSubscriber).toHaveBeenNthCalledWith(1, [789, 123]);
@@ -140,9 +140,9 @@ test("can handle descriminted unions", () => {
   typeLens.subscribe(() => typeSubscriber(typeLens.current));
   valueLens.subscribe(() => valueSubscriber(valueLens.current));
 
-  lens.update(() => ({ type: "loading" }));
-  lens.update(() => ({ type: "loaded", value: 1 }));
-  lens.update(() => ({ type: "loading" }));
+  lens.set(() => ({ type: "loading" }));
+  lens.set(() => ({ type: "loaded", value: 1 }));
+  lens.set(() => ({ type: "loading" }));
 
   expect(typeSubscriber).toHaveBeenCalledTimes(3);
   expect(typeSubscriber).toHaveBeenNthCalledWith(1, "loading");
@@ -161,11 +161,11 @@ test("does not affect lenses of iterables when the value is removed", () => {
 
   expect(lens0.current.foo).toBe(1);
 
-  lens.update(() => []);
+  lens.set(() => []);
 
   expect(lens0.current).toBe(undefined);
 
-  lens.update(() => [{ foo: 3 }]);
+  lens.set(() => [{ foo: 3 }]);
 
   expect(lens0.current.foo).toBe(3);
 });
@@ -178,9 +178,9 @@ test("does not affect subscribers of iterables when the value is removed", () =>
 
   lens0.subscribe(() => subscriber(lens0.current));
 
-  lens.update((prev) => [{ foo: 3 }, ...prev]);
-  lens.update(([first, ...rest]) => [{ ...first, foo: 10 }, ...rest]);
-  lens.update(() => []);
+  lens.set((prev) => [{ foo: 3 }, ...prev]);
+  lens.set(([first, ...rest]) => [{ ...first, foo: 10 }, ...rest]);
+  lens.set(() => []);
 
   expect(subscriber).toHaveBeenCalledTimes(3);
   expect(subscriber).toHaveBeenNthCalledWith(1, { foo: 3 });
@@ -198,19 +198,19 @@ test("does not update an empty value", () => {
 
   lens0.subscribe(() => subscriber(lens0.current));
 
-  lens.update(() => []);
+  lens.set(() => []);
 
   /**
    * Should not be called because there is no value.
    */
-  lens0Foo.update((prev) => ({ ...prev, value: 10 }));
+  lens0Foo.set((prev) => ({ ...prev, value: 10 }));
 
   expect(subscriber).toHaveBeenCalledTimes(1);
   expect(subscriber).toHaveBeenNthCalledWith(1, undefined);
 
   expect(lens.current).toEqual([]);
 
-  lens1.update((prev) => ({ ...prev, foo: { value: 10 } }));
+  lens1.set((prev) => ({ ...prev, foo: { value: 10 } }));
 
   expect(lens.current).toEqual([undefined, { foo: { value: 10 } }]);
 });

@@ -14,10 +14,10 @@ type Parent<S extends object> = {
 };
 
 export type Lens<A> = {
-  current: A;
+  get current(): A;
   prop<K extends keyof A>(key: K): Lens<A[K]>;
-  update(fn: (value: A) => A): void;
-  update(fn: (value: A) => Promise<A>): Promise<void>;
+  set(fn: (value: A) => A): void;
+  set(fn: (value: A) => Promise<A>): Promise<void>;
   subscribe(fn: Subscriber): Unsubscribe;
 };
 
@@ -31,7 +31,7 @@ const shallowCopy = <T>(obj: T): T => {
   }
 };
 
-export class RefLens<S extends object, A> implements MutableRefObject<A>, Lens<A> {
+export class RefLens<S extends object, A> implements Lens<A> {
   static fromValue<S extends object>(current: S): Lens<S> {
     return RefLens.fromRef({ current });
   }
@@ -70,15 +70,6 @@ export class RefLens<S extends object, A> implements MutableRefObject<A>, Lens<A
     return this.#getter(this.#rootRef.current);
   }
 
-  set current(value: A) {
-    const prev = this.#rootRef.current;
-    const next = this.#setter(prev, value);
-
-    this.#rootRef.current = next;
-    this.#notifyDown(prev, next);
-    this.#parent.notifyUp();
-  }
-
   prop<K extends keyof A>(key: K): Lens<A[K]> {
     let lens = this.#children[key];
 
@@ -111,32 +102,32 @@ export class RefLens<S extends object, A> implements MutableRefObject<A>, Lens<A
     return lens;
   }
 
-  update(fn: (value: A) => A): void;
-  update(fn: (value: A) => Promise<A>): Promise<void>;
-  update(fn: (value: A) => A | Promise<A>): void | Promise<void> {
-    let current: A | typeof GetterThrew;
+  set(fn: (prev: A) => A): void;
+  set(fn: (prev: A) => Promise<A>): Promise<void>;
+  set(fn: (prev: A) => A | Promise<A>): void | Promise<void> {
+    let prev: A | typeof GetterThrew;
 
     /**
      * Wrap the getter in a try/catch because it may throw an error.
      */
     try {
-      current = this.current;
+      prev = this.current;
     } catch {
-      current = GetterThrew;
+      prev = GetterThrew;
     }
 
-    if (current === GetterThrew) {
+    if (prev === GetterThrew) {
       return;
     }
 
-    const next = fn(current);
+    const next = fn(prev);
 
     if (next instanceof Promise) {
       return next.then((value) => {
-        this.current = value;
+        this.#set(value);
       });
     } else {
-      this.current = next;
+      this.#set(next);
     }
   }
 
@@ -146,6 +137,15 @@ export class RefLens<S extends object, A> implements MutableRefObject<A>, Lens<A
     return () => {
       this.#subscribers.delete(fn);
     };
+  }
+
+  #set(value: A) {
+    const prev = this.#rootRef.current;
+    const next = this.#setter(prev, value);
+
+    this.#rootRef.current = next;
+    this.#notifyDown(prev, next);
+    this.#parent.notifyUp();
   }
 
   #notifyDown(prev: S, next: S) {
