@@ -199,3 +199,78 @@ test("renders lenses from a list of lenses", () => {
 
   expect(getByTestId("container").textContent).toEqual("");
 });
+
+test("limits re-rendering subscribed lens taht change their value", () => {
+  const lens = makeLens([{ value: 0 }, { value: 1 }, { value: 2 }]);
+
+  const logApp = vi.fn();
+  const logChild = vi.fn();
+
+  const App = () => {
+    const [proxy] = useLens(lens);
+
+    logApp(proxy.toJSON());
+
+    return (
+      <div data-testid="container">
+        {mapArray(proxy, (item, index) => (
+          <Child key={index} lens={item.toLens()} />
+        ))}
+      </div>
+    );
+  };
+
+  const Child = React.memo((props: { lens: Lens<{ value: number }> }) => {
+    const [proxy] = useLens(props.lens);
+
+    logChild(proxy.value);
+
+    return <div>{proxy.value}</div>;
+  });
+
+  const { getByTestId } = render(<App />);
+
+  expect(getByTestId("container").textContent).toEqual("012");
+  expect(logApp).toHaveBeenCalledTimes(1);
+  expect(logChild).toHaveBeenCalledTimes(3);
+
+  act(() =>
+    lens
+      .prop(1)
+      .prop("value")
+      .set((prev) => prev + 1)
+  );
+
+  expect(getByTestId("container").textContent).toEqual("022");
+  expect(logApp).toHaveBeenCalledTimes(2);
+  expect(logChild).toHaveBeenCalledTimes(4);
+
+  act(() =>
+    lens
+      .prop(0)
+      .prop("value")
+      .set((prev) => prev + 1)
+  );
+
+  expect(getByTestId("container").textContent).toEqual("122");
+
+  act(() =>
+    lens
+      .prop(0)
+      .prop("value")
+      // no change
+      .set((prev) => prev)
+  );
+
+  expect(logApp).toHaveBeenCalledTimes(3);
+  expect(logApp).toHaveBeenNthCalledWith(1, [{ value: 0 }, { value: 1 }, { value: 2 }]);
+  expect(logApp).toHaveBeenNthCalledWith(2, [{ value: 0 }, { value: 2 }, { value: 2 }]);
+  expect(logApp).toHaveBeenNthCalledWith(3, [{ value: 1 }, { value: 2 }, { value: 2 }]);
+
+  expect(logChild).toHaveBeenCalledTimes(5);
+  expect(logChild).toHaveBeenNthCalledWith(1, 0);
+  expect(logChild).toHaveBeenNthCalledWith(2, 1);
+  expect(logChild).toHaveBeenNthCalledWith(3, 2);
+  expect(logChild).toHaveBeenNthCalledWith(4, 2);
+  expect(logChild).toHaveBeenNthCalledWith(5, 1);
+});

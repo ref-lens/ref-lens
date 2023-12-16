@@ -117,9 +117,13 @@ export class RefLens<S extends object, A> implements Lens<A> {
 
     if (next instanceof Promise) {
       return next.then((value) => {
+        if (Object.is(prev, value)) return;
+
         this.#set(value);
       });
     } else {
+      if (Object.is(prev, next)) return;
+
       this.#set(next);
     }
   }

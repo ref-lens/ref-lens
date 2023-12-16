@@ -53,7 +53,7 @@ test("can subscribe to all changes", () => {
   pingLens.set(() => ({ pong: "world" }));
   bazLens.set(() => 10);
 
-  expect(rootSubscriber).toHaveBeenCalledTimes(4);
+  expect(rootSubscriber).toHaveBeenCalledTimes(3);
   expect(rootSubscriber).toHaveBeenNthCalledWith(1, {
     foo: { bar: { baz: 5 } },
     ping: { pong: "hello" },
@@ -66,15 +66,10 @@ test("can subscribe to all changes", () => {
     foo: { bar: { baz: 10 } },
     ping: { pong: "world" },
   });
-  expect(rootSubscriber).toHaveBeenNthCalledWith(4, {
-    foo: { bar: { baz: 10 } },
-    ping: { pong: "world" },
-  });
 
-  expect(barSubscriber).toHaveBeenCalledTimes(3);
+  expect(barSubscriber).toHaveBeenCalledTimes(2);
   expect(barSubscriber).toHaveBeenNthCalledWith(1, { baz: 5 });
   expect(barSubscriber).toHaveBeenNthCalledWith(2, { baz: 10 });
-  expect(barSubscriber).toHaveBeenNthCalledWith(3, { baz: 10 });
 
   expect(bazSubscriber).toHaveBeenCalledTimes(2);
   expect(bazSubscriber).toHaveBeenNthCalledWith(1, 5);
