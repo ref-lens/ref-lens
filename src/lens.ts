@@ -8,9 +8,8 @@ type MutableRefObject<S> = {
   current: S;
 };
 
-type Parent<S extends object> = {
+type Parent = {
   notifyUp(): void;
-  cachedGetter(state: S): any;
 };
 
 export type Lens<A> = {
@@ -37,11 +36,8 @@ export class RefLens<S extends object, A> implements Lens<A> {
   }
 
   static fromRef<S extends object>(rootRef: MutableRefObject<S>): Lens<S> {
-    const rootParent: Parent<S> = {
+    const rootParent: Parent = {
       notifyUp() {},
-      cachedGetter(root) {
-        return root;
-      },
     };
 
     return new RefLens(
@@ -56,10 +52,10 @@ export class RefLens<S extends object, A> implements Lens<A> {
   #children: { [K in keyof A]?: RefLens<S, A[K]> } = {};
   #getter: GetFn<S, A>;
   #setter: SetFn<S, A>;
-  #parent: Parent<S>;
+  #parent: Parent;
   #rootRef: MutableRefObject<S>;
 
-  constructor(getter: GetFn<S, A>, setter: SetFn<S, A>, parent: Parent<S>, rootRef: MutableRefObject<S>) {
+  constructor(getter: GetFn<S, A>, setter: SetFn<S, A>, parent: Parent, rootRef: MutableRefObject<S>) {
     this.#getter = getter;
     this.#setter = setter;
     this.#parent = parent;
@@ -74,10 +70,7 @@ export class RefLens<S extends object, A> implements Lens<A> {
     let lens = this.#children[key];
 
     if (!lens) {
-      const parent: Parent<S> = {
-        notifyUp: () => this.#notifyUp(),
-        cachedGetter: (state) => this.#getter(state),
-      };
+      const parent: Parent = { notifyUp: () => this.#notifyUp() };
 
       lens = new RefLens(
         (state) => {
@@ -176,7 +169,7 @@ export class RefLens<S extends object, A> implements Lens<A> {
 
   #notifyUp() {
     this.#notifySelf();
-    this.#parent?.notifyUp();
+    this.#parent.notifyUp();
   }
 
   #notifySelf() {
