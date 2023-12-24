@@ -254,18 +254,28 @@ test("limits re-rendering subscribed lens taht change their value", () => {
 
   expect(getByTestId("container").textContent).toEqual("122");
 
+  // noop shouldn't trigger a render
   act(() =>
     lens
       .prop(0)
       .prop("value")
-      // no change
       .set((prev) => prev)
   );
 
-  expect(logApp).toHaveBeenCalledTimes(3);
+  // noop shouldn't trigger a render
+  act(() => lens.prop(0).set((prev) => prev));
+
+  // noop shouldn't trigger a render
+  act(() => lens.set((prev) => prev));
+
+  // creating a new array will trigger a render because the reference changes
+  act(() => lens.set((prev) => [...prev]));
+
+  expect(logApp).toHaveBeenCalledTimes(4);
   expect(logApp).toHaveBeenNthCalledWith(1, [{ value: 0 }, { value: 1 }, { value: 2 }]);
   expect(logApp).toHaveBeenNthCalledWith(2, [{ value: 0 }, { value: 2 }, { value: 2 }]);
   expect(logApp).toHaveBeenNthCalledWith(3, [{ value: 1 }, { value: 2 }, { value: 2 }]);
+  expect(logApp).toHaveBeenNthCalledWith(4, [{ value: 1 }, { value: 2 }, { value: 2 }]);
 
   expect(logChild).toHaveBeenCalledTimes(5);
   expect(logChild).toHaveBeenNthCalledWith(1, 0);

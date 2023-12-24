@@ -209,3 +209,25 @@ test("does not update an empty value", () => {
 
   expect(lens.current).toEqual([undefined, { foo: { value: 10 } }]);
 });
+
+test("can update a value asynchronously", async () => {
+  const rootRef = { current: { foo: { bar: { baz: 0 } } } };
+  const lens = RefLens.fromRef(rootRef).prop("foo").prop("bar").prop("baz");
+
+  const subscriber = vi.fn();
+
+  lens.subscribe(() => subscriber(lens.current));
+
+  const prom = lens.setAsync(async (prev) => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return prev + 5;
+  });
+
+  expect(lens.current).toBe(0);
+  expect(subscriber).toHaveBeenCalledTimes(0);
+
+  await prom;
+
+  expect(subscriber).toHaveBeenCalledTimes(1);
+  expect(subscriber).toHaveBeenNthCalledWith(1, 5);
+});

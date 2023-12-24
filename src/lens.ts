@@ -16,7 +16,7 @@ export type Lens<A> = {
   get current(): A;
   prop<K extends keyof A>(key: K): Lens<A[K]>;
   set(fn: (value: A) => A): void;
-  set(fn: (value: A) => Promise<A>): Promise<void>;
+  setAsync(fn: (value: A) => Promise<A>): Promise<void>;
   subscribe(fn: Subscriber): Unsubscribe;
 };
 
@@ -95,9 +95,7 @@ export class RefLens<S extends object, A> implements Lens<A> {
     return lens;
   }
 
-  set(fn: (prev: A) => A): void;
-  set(fn: (prev: A) => Promise<A>): Promise<void>;
-  set(fn: (prev: A) => A | Promise<A>): void | Promise<void> {
+  set(fn: (prev: A) => A): void {
     let prev: A | typeof GetterThrew;
 
     /**
@@ -115,33 +113,45 @@ export class RefLens<S extends object, A> implements Lens<A> {
 
     const next = fn(prev);
 
-    if (next instanceof Promise) {
-      return next.then((value) => {
-        if (Object.is(prev, value)) return;
+    if (Object.is(prev, next)) return;
 
-        this.#set(value);
-      });
-    } else {
-      if (Object.is(prev, next)) return;
+    this.#set(next);
+  }
 
-      this.#set(next);
+  async setAsync(fn: (prev: A) => Promise<A>): Promise<void> {
+    let prev: A | typeof GetterThrew;
+
+    /**
+     * Wrap the getter in a try/catch because it may throw an error.
+     */
+    try {
+      prev = this.current;
+    } catch {
+      prev = GetterThrew;
     }
+
+    if (prev === GetterThrew) {
+      return;
+    }
+
+    const next = await fn(prev);
+
+    if (Object.is(prev, next)) return;
+
+    this.#set(next);
   }
 
   subscribe(fn: Subscriber): Unsubscribe {
     this.#subscribers.add(fn);
-
-    return () => {
-      this.#subscribers.delete(fn);
-    };
+    return () => this.#subscribers.delete(fn);
   }
 
   #set(value: A) {
-    const prev = this.#rootRef.current;
-    const next = this.#setter(prev, value);
+    const prevS = this.#rootRef.current;
+    const nextS = this.#setter(prevS, value);
 
-    this.#rootRef.current = next;
-    this.#notifyDown(prev, next);
+    this.#rootRef.current = nextS;
+    this.#notifyDown(prevS, nextS);
     this.#parent.notifyUp();
   }
 
