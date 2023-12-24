@@ -5,7 +5,6 @@ type GetFn<S, A> = (state: S) => A;
 type SetFn<S, A> = (state: S, value: A) => S;
 
 export type LensSet<A> = (fn: (prev: A) => A) => void;
-export type LensSetAsync<A> = (fn: (prev: A) => Promise<A>) => Promise<void>;
 
 type MutableRefObject<S> = {
   current: S;
@@ -19,7 +18,6 @@ export type Lens<A> = {
   get current(): A;
   prop<K extends keyof A>(key: K): Lens<A[K]>;
   set: LensSet<A>;
-  setAsync: LensSetAsync<A>;
   subscribe(fn: Subscriber): Unsubscribe;
 };
 
@@ -115,29 +113,6 @@ export class RefLens<S extends object, A> implements Lens<A> {
     }
 
     const next = fn(prev);
-
-    if (Object.is(prev, next)) return;
-
-    this.#set(next);
-  }
-
-  async setAsync(fn: (prev: A) => Promise<A>): Promise<void> {
-    let prev: A | typeof GetterThrew;
-
-    /**
-     * Wrap the getter in a try/catch because it may throw an error.
-     */
-    try {
-      prev = this.current;
-    } catch {
-      prev = GetterThrew;
-    }
-
-    if (prev === GetterThrew) {
-      return;
-    }
-
-    const next = await fn(prev);
 
     if (Object.is(prev, next)) return;
 
