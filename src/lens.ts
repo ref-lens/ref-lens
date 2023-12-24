@@ -10,8 +10,9 @@ type MutableRefObject<S> = {
   current: S;
 };
 
-type Parent = {
+type Parent<S> = {
   notifyUp(): void;
+  cachedGet(root: S): any;
 };
 
 export type Lens<A> = {
@@ -37,8 +38,9 @@ export class RefLens<S extends object, A> implements Lens<A> {
   }
 
   static fromRef<S extends object>(rootRef: MutableRefObject<S>): Lens<S> {
-    const rootParent: Parent = {
+    const rootParent: Parent<S> = {
       notifyUp() {},
+      cachedGet: (root) => root,
     };
 
     return new RefLens(
@@ -49,14 +51,15 @@ export class RefLens<S extends object, A> implements Lens<A> {
     );
   }
 
+  #cache: WeakMap<object, A> = new WeakMap();
   #subscribers: Set<Subscriber> = new Set();
   #children: { [K in keyof A]?: RefLens<S, A[K]> } = {};
   #getter: GetFn<S, A>;
   #setter: SetFn<S, A>;
-  #parent: Parent;
+  #parent: Parent<S>;
   #rootRef: MutableRefObject<S>;
 
-  constructor(getter: GetFn<S, A>, setter: SetFn<S, A>, parent: Parent, rootRef: MutableRefObject<S>) {
+  constructor(getter: GetFn<S, A>, setter: SetFn<S, A>, parent: Parent<S>, rootRef: MutableRefObject<S>) {
     this.#getter = getter;
     this.#setter = setter;
     this.#parent = parent;
@@ -64,14 +67,17 @@ export class RefLens<S extends object, A> implements Lens<A> {
   }
 
   get current(): A {
-    return this.#getter(this.#rootRef.current);
+    return this.#cachedGetter(this.#rootRef.current);
   }
 
   prop<K extends keyof A>(key: K): Lens<A[K]> {
     let lens = this.#children[key];
 
     if (!lens) {
-      const parent: Parent = { notifyUp: () => this.#notifyUp() };
+      const parent: Parent<S> = {
+        notifyUp: () => this.#notifyUp(),
+        cachedGet: (root) => this.#cachedGetter(root),
+      };
 
       lens = new RefLens(
         (state) => {
@@ -133,14 +139,29 @@ export class RefLens<S extends object, A> implements Lens<A> {
     this.#parent.notifyUp();
   }
 
+  #cachedGetter(root: S): A {
+    /**
+     * Use the parent state as a key for the cache.
+     */
+    const parentObj = this.#parent.cachedGet(root);
+    let cached = this.#cache.get(parentObj);
+
+    if (!cached) {
+      cached = this.#getter(root);
+      this.#cache.set(parentObj, cached);
+    }
+
+    return cached;
+  }
+
   #notifyDown(prev: S, next: S) {
     /**
      * Wrap this in a try/catch because the getter may throw an error.
      * This can happen in lists where a getter has been removed.
      */
     try {
-      const prevA = this.#getter(prev);
-      const nextA = this.#getter(next);
+      const prevA = this.#cachedGetter(prev);
+      const nextA = this.#cachedGetter(next);
 
       /**
        * If the value has not changed, then we don't need to notify.
