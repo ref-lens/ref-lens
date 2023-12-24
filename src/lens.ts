@@ -4,6 +4,9 @@ type Unsubscribe = () => void;
 type GetFn<S, A> = (state: S) => A;
 type SetFn<S, A> = (state: S, value: A) => S;
 
+export type LensSet<A> = (fn: (prev: A) => A) => void;
+export type LensSetAsync<A> = (fn: (prev: A) => Promise<A>) => Promise<void>;
+
 type MutableRefObject<S> = {
   current: S;
 };
@@ -15,8 +18,8 @@ type Parent = {
 export type Lens<A> = {
   get current(): A;
   prop<K extends keyof A>(key: K): Lens<A[K]>;
-  set(fn: (value: A) => A): void;
-  setAsync(fn: (value: A) => Promise<A>): Promise<void>;
+  set: LensSet<A>;
+  setAsync: LensSetAsync<A>;
   subscribe(fn: Subscriber): Unsubscribe;
 };
 

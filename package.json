@@ -5,7 +5,8 @@
   "description": "Lens-like data structures for React",
   "main": "index.js",
   "scripts": {
-    "test": "vitest"
+    "test": "vitest",
+    "test:types": "tsc"
   },
   "repository": {
     "type": "git",

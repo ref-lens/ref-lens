@@ -110,7 +110,7 @@ const innerMake = <A>(lens: Lens<A>): LensProxy<A> => {
       return desc;
     },
 
-    set() {
+    set(_target, key, value) {
       return false;
     },
 

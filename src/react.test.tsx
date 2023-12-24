@@ -284,3 +284,42 @@ test("limits re-rendering subscribed lens taht change their value", () => {
   expect(logChild).toHaveBeenNthCalledWith(4, 2);
   expect(logChild).toHaveBeenNthCalledWith(5, 1);
 });
+
+test("handles having the lens replaced", () => {
+  const lensA = makeLens({ foo: { bar: 0 } });
+  const lensB = makeLens({ foo: { bar: "hello" } });
+
+  const Child = (props: { lens: Lens<string> | Lens<number> }) => {
+    const [proxy] = useLens(props.lens);
+
+    return <div data-testid="child-container">{proxy}</div>;
+  };
+
+  const App = () => {
+    const [useB, setUseB] = React.useState(false);
+    const lens = useB ? lensB : lensA;
+
+    const [proxy] = useLens(lens);
+
+    return (
+      <div>
+        <div data-testid="parent-container">{JSON.stringify(proxy.foo.toJSON())}</div>
+        <button data-testid="button" onClick={() => setUseB(true)}>
+          useB
+        </button>
+        <Child lens={lens.prop("foo").prop("bar")} />
+      </div>
+    );
+  };
+
+  const { getByTestId } = render(<App />);
+  const button = getByTestId("button");
+
+  expect(getByTestId("parent-container").textContent).toEqual('{"bar":0}');
+  expect(getByTestId("child-container").textContent).toEqual("0");
+
+  act(() => button.click());
+
+  expect(getByTestId("parent-container").textContent).toEqual('{"bar":"hello"}');
+  expect(getByTestId("child-container").textContent).toEqual("hello");
+});
