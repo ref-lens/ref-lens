@@ -31,7 +31,8 @@ test("can subscribe to all changes", () => {
     current: { foo: { bar: { baz: 0 } }, ping: { pong: "hello" } },
   };
   const rootLens = RefLens.fromRef(rootRef);
-  const barLens = rootLens.prop("foo").prop("bar");
+
+  const barLens = rootLens.props("foo.bar");
   const bazLens = barLens.prop("baz");
   const pingLens = rootLens.prop("ping");
   const pongLens = pingLens.prop("pong");
@@ -190,7 +191,7 @@ test("does not update an empty value", () => {
   const lens = RefLens.fromValue([{ foo: { value: 1 } }, { foo: { value: 2 } }]);
   const lens0 = lens.prop(0);
   const lens1 = lens.prop(1);
-  const lens0Foo = lens0.prop("foo");
+  const lens0Foo = lens.props("0.foo");
 
   const subscriber = vi.fn();
 
@@ -211,4 +212,11 @@ test("does not update an empty value", () => {
   lens1.set((prev) => ({ ...prev, foo: { value: 10 } }));
 
   expect(lens.current).toEqual([undefined, { foo: { value: 10 } }]);
+});
+
+test("can deeply get props inside of arrays", () => {
+  const lens = RefLens.fromValue({ foo: { bar: { baz: [{ haha: 1 }] } } });
+
+  expect(lens.props("foo.bar.baz").current).toEqual([{ haha: 1 }]);
+  expect(lens.props("foo.bar.baz.0.haha").current).toEqual(1);
 });

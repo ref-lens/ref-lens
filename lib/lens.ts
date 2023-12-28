@@ -1,3 +1,12 @@
+import type { Paths } from "type-fest";
+
+// prettier-ignore
+type GetDeep<T, K extends string | number> = 
+  K extends keyof T ? T[K] :
+  K extends number | `${number}` ? (T extends any[] ? T[number] : never) :
+  K extends `${number}.${infer Rest}` ? (T extends any[] ? GetDeep<T[number], Rest> : never) :
+  K extends `${infer First}.${infer Rest}` ? First extends keyof T ? GetDeep<T[First], Rest> : never : never;
+
 type Subscriber = () => void;
 type Unsubscribe = () => void;
 
@@ -16,9 +25,30 @@ type Parent<S> = {
 };
 
 export type Lens<A> = {
+  /**
+   * Gets the current value of the lens.
+   */
   get current(): A;
+  /**
+   * Refines the lens by a single property.
+   * @param key The property key.
+   */
   prop<K extends keyof A>(key: K): Lens<A[K]>;
+  /**
+   * Deeply refines the lens by a property key path.
+   * @param keyPath The property key path.
+   */
+  props<K extends Paths<A> & string>(keyPath: K): Lens<GetDeep<A, K>>;
+  /**
+   * Sets the value of the lens.
+   * @param fn A function that receives the previous value and returns the next value.
+   */
   set: LensSet<A>;
+  /**
+   * Subscribes to changes to the lens.
+   * @param fn A function that is called when the lens changes.
+   * @returns A function that can be called to unsubscribe.
+   */
   subscribe(fn: Subscriber): Unsubscribe;
 };
 
@@ -100,6 +130,16 @@ export class RefLens<S extends object, A> implements Lens<A> {
     }
 
     return lens;
+  }
+
+  props<K extends Paths<A> & string>(keyPath: K): Lens<GetDeep<A, K>> {
+    let lens = this as Lens<any>;
+
+    for (const key of keyPath.split(".")) {
+      lens = lens.prop(key);
+    }
+
+    return lens as Lens<GetDeep<A, K>>;
   }
 
   set(fn: (prev: A) => A): void {

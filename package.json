@@ -53,5 +53,8 @@
   "peerDependencies": {
     "react": ">=16.8.0",
     "react-dom": ">=16.8.0"
+  },
+  "dependencies": {
+    "type-fest": "^4.8.3"
   }
 }
