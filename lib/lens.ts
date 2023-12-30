@@ -1,11 +1,12 @@
 import type { Paths } from "type-fest";
 
 // prettier-ignore
-type GetDeep<T, K extends string | number> = 
+type GetDeep<T, K extends string> = 
   K extends keyof T ? T[K] :
-  K extends number | `${number}` ? (T extends any[] ? T[number] : never) :
+  K extends `${number}` ? (T extends any[] ? T[number] : never) :
   K extends `${number}.${infer Rest}` ? (T extends any[] ? GetDeep<T[number], Rest> : never) :
-  K extends `${infer First}.${infer Rest}` ? First extends keyof T ? GetDeep<T[First], Rest> : never : never;
+  K extends `${infer First}.${infer Rest}` ? (First extends keyof T ? GetDeep<T[First], Rest> : never)
+  : never;
 
 type Subscriber = () => void;
 type Unsubscribe = () => void;
@@ -169,6 +170,7 @@ class RefLens<S extends object, A> implements Lens<A> {
     const nextS = this.#lens.set(prevS, value);
 
     this.#rootRef.current = nextS;
+
     this.#notifyDown(prevS, nextS);
     this.#parent.notifyUp();
   }

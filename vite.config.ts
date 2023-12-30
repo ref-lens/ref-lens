@@ -7,6 +7,7 @@ export default defineConfig({
     globals: true,
   },
   build: {
+    sourcemap: true,
     lib: {
       entry: path.resolve(__dirname, "lib/main.ts"),
       name: "RefLens",
