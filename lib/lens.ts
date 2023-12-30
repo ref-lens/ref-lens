@@ -19,9 +19,8 @@ type MutableRefObject<S> = {
   current: S;
 };
 
-type Parent<S> = {
+type Parent = {
   notifyUp(): void;
-  cachedGet(root: S): any;
 };
 
 export type Lens<A> = {
@@ -52,15 +51,39 @@ export type Lens<A> = {
   subscribe(fn: Subscriber): Unsubscribe;
 };
 
-const GetterThrew = Symbol();
-
-const shallowCopy = <T>(obj: T): T => {
-  if (Array.isArray(obj)) {
-    return [...obj] as T;
-  } else {
-    return { ...obj } as T;
+class InternalLens<S extends object, A> {
+  static root<S extends object>() {
+    return new InternalLens<S, S>(
+      (state) => state,
+      (_, value) => value
+    );
   }
-};
+
+  constructor(public get: GetFn<S, A>, public set: SetFn<S, A>) {}
+
+  refine<K extends keyof A>(key: K): InternalLens<S, A[K]> {
+    return new InternalLens(
+      (state) => {
+        const current = this.get(state);
+        return current[key];
+      },
+      (state, value) => {
+        const current = this.get(state);
+        let copy = current;
+
+        if (Array.isArray(copy)) {
+          copy = [...copy] as A;
+        } else {
+          copy = { ...copy } as A;
+        }
+
+        copy[key] = value;
+
+        return this.set(state, copy);
+      }
+    );
+  }
+}
 
 export class RefLens<S extends object, A> implements Lens<A> {
   static fromValue<S extends object>(current: S): Lens<S> {
@@ -68,68 +91,42 @@ export class RefLens<S extends object, A> implements Lens<A> {
   }
 
   static fromRef<S extends object>(rootRef: MutableRefObject<S>): Lens<S> {
-    const rootParent: Parent<S> = {
+    const rootParent: Parent = {
       notifyUp() {},
-      cachedGet: (root) => root,
     };
 
-    return new RefLens(
-      (state) => state,
-      (state, value) => value,
-      rootParent,
-      rootRef
-    );
+    return new RefLens(InternalLens.root<S>(), rootParent, rootRef);
   }
 
-  #cache: WeakMap<object, A> = new WeakMap();
   #subscribers: Set<Subscriber> = new Set();
   #children: { [K in keyof A]?: RefLens<S, A[K]> } = {};
-  #getter: GetFn<S, A>;
-  #setter: SetFn<S, A>;
-  #parent: Parent<S>;
+  #lens: InternalLens<S, A>;
+  #parent: Parent;
   #rootRef: MutableRefObject<S>;
 
-  constructor(getter: GetFn<S, A>, setter: SetFn<S, A>, parent: Parent<S>, rootRef: MutableRefObject<S>) {
-    this.#getter = getter;
-    this.#setter = setter;
+  constructor(lens: InternalLens<S, A>, parent: Parent, rootRef: MutableRefObject<S>) {
+    this.#lens = lens;
     this.#parent = parent;
     this.#rootRef = rootRef;
   }
 
   get current(): A {
-    return this.#cachedGetter(this.#rootRef.current);
+    return this.#lens.get(this.#rootRef.current);
   }
 
   prop<K extends keyof A>(key: K): Lens<A[K]> {
-    let lens = this.#children[key];
+    let refLens = this.#children[key];
 
-    if (!lens) {
-      const parent: Parent<S> = {
-        notifyUp: () => this.#notifyUp(),
-        cachedGet: (root) => this.#cachedGetter(root),
-      };
+    if (!refLens) {
+      const lens = this.#lens.refine(key);
+      const parent: Parent = { notifyUp: () => this.#notifyUp() };
 
-      lens = new RefLens(
-        (state) => {
-          const current = this.#getter(state);
-          return current[key];
-        },
-        (state, value) => {
-          const current = this.#getter(state);
-          const copy = shallowCopy(current);
+      refLens = new RefLens(lens, parent, this.#rootRef);
 
-          copy[key] = value;
-
-          return this.#setter(state, copy);
-        },
-        parent,
-        this.#rootRef
-      );
-
-      this.#children[key] = lens;
+      this.#children[key] = refLens;
     }
 
-    return lens;
+    return refLens;
   }
 
   props<K extends Paths<A> & string>(keyPath: K): Lens<GetDeep<A, K>> {
@@ -143,7 +140,7 @@ export class RefLens<S extends object, A> implements Lens<A> {
   }
 
   set(fn: (prev: A) => A): void {
-    let prev: A | typeof GetterThrew;
+    let prev: A;
 
     /**
      * Wrap the getter in a try/catch because it may throw an error.
@@ -151,10 +148,6 @@ export class RefLens<S extends object, A> implements Lens<A> {
     try {
       prev = this.current;
     } catch {
-      prev = GetterThrew;
-    }
-
-    if (prev === GetterThrew) {
       return;
     }
 
@@ -172,26 +165,11 @@ export class RefLens<S extends object, A> implements Lens<A> {
 
   #set(value: A) {
     const prevS = this.#rootRef.current;
-    const nextS = this.#setter(prevS, value);
+    const nextS = this.#lens.set(prevS, value);
 
     this.#rootRef.current = nextS;
     this.#notifyDown(prevS, nextS);
     this.#parent.notifyUp();
-  }
-
-  #cachedGetter(root: S): A {
-    /**
-     * Use the parent state as a key for the cache.
-     */
-    const parentObj = this.#parent.cachedGet(root);
-    let cached = this.#cache.get(parentObj);
-
-    if (!cached) {
-      cached = this.#getter(root);
-      this.#cache.set(parentObj, cached);
-    }
-
-    return cached;
   }
 
   #notifyDown(prev: S, next: S) {
@@ -200,8 +178,8 @@ export class RefLens<S extends object, A> implements Lens<A> {
      * This can happen in lists where a getter has been removed.
      */
     try {
-      const prevA = this.#cachedGetter(prev);
-      const nextA = this.#cachedGetter(next);
+      const prevA = this.#lens.get(prev);
+      const nextA = this.#lens.get(next);
 
       /**
        * If the value has not changed, then we don't need to notify.
