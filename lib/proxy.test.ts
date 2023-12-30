@@ -27,7 +27,7 @@ test("can iterate a list and return values to a lens", () => {
     result.push(item);
   }
 
-  expect(result).toEqual([lens.prop(0).current, lens.prop(1).current]);
+  expect(result).toEqual([lens.refine(0).current, lens.refine(1).current]);
 });
 
 test("can transform back into the same lens", () => {
@@ -40,7 +40,7 @@ test("scalars are not wrapped in proxies", () => {
   const lens = makeLens({ foo: "bar" });
   const proxy = makeProxy(lens);
 
-  expect(proxy.foo).toBe(lens.prop("foo").current);
+  expect(proxy.foo).toBe(lens.refine("foo").current);
 });
 
 test("can be converted into a primitive", () => {
@@ -92,7 +92,7 @@ test("can filter objects in arrays", () => {
 
   expect(resultA.length).toBe(1);
 
-  lens.set((prev) => prev.concat({ foo: "bif" }));
+  lens.update((prev) => prev.concat({ foo: "bif" }));
 
   const resultB = filterArray(proxy, (item) => item.foo === "bar" || item.foo === "bif");
 
@@ -105,38 +105,38 @@ test("keeps the same lens reference through iteration", () => {
 
   const result = mapArray(proxy, (item) => item.toLens());
 
-  expect(lens.prop(0)).toBe(result[0]);
-  expect(lens.prop(1)).toBe(result[1]);
+  expect(lens.refine(0)).toBe(result[0]);
+  expect(lens.refine(1)).toBe(result[1]);
 });
 
 test("keeps the same reference to an index when the list is updated", () => {
   const lens = makeLens([{ foo: "bar" }, { foo: "baz" }]);
-  const lens0 = lens.prop(0);
+  const lens0 = lens.refine(0);
   const proxy = makeProxy(lens0);
 
   expect(proxy.foo).toBe("bar");
 
-  lens.set((prev) => [{ foo: "bif", ...prev }]);
+  lens.update((prev) => [{ foo: "bif", ...prev }]);
 
   expect(proxy.foo).toBe("bif");
 });
 
 test("reacts to mutated objects", () => {
   const lens = makeLens({ foo: ["bar"] });
-  const fooLens = lens.prop("foo");
+  const fooLens = lens.refine("foo");
   const proxy = makeProxy(lens);
 
   expect(proxy.foo.toLens()).toBe(fooLens);
   expect(proxy.foo.toJSON()).toEqual(["bar"]);
 
-  fooLens.set((prev) => prev.concat("baz"));
+  fooLens.update((prev) => prev.concat("baz"));
 
   expect(proxy.foo.toJSON()).toEqual(["bar", "baz"]);
 });
 
 test("can proxy scalar values", () => {
   const lens = makeLens({ foo: { bar: { baz: 0 } } });
-  const bazLens = lens.prop("foo").prop("bar").prop("baz");
+  const bazLens = lens.refine("foo").refine("bar").refine("baz");
 
   const proxy = makeProxy(bazLens);
 
@@ -152,22 +152,22 @@ test("can descriminate a union back into a lens", () => {
   const proxy = makeProxy(lens);
 
   // @ts-expect-error
-  lens.prop("foo");
+  lens.refine("foo");
 
   if (proxy.type === "b") {
-    proxy.toLens().prop("bar");
+    proxy.toLens().refine("bar");
 
     // @ts-expect-error
-    proxy.toLens().prop("foo");
+    proxy.toLens().refine("foo");
   }
 
   if (proxy.type === "a") {
-    const fooLens = proxy.toLens().prop("foo");
+    const fooLens = proxy.toLens().refine("foo");
 
     expect(fooLens.current).toBe("bar");
     expect(proxy.foo).toBe("bar");
 
     // @ts-expect-error
-    proxy.toLens().prop("bar");
+    proxy.toLens().refine("bar");
   }
 });

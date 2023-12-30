@@ -12,8 +12,7 @@ type Unsubscribe = () => void;
 
 type GetFn<S, A> = (state: S) => A;
 type SetFn<S, A> = (state: S, value: A) => S;
-
-export type LensSet<A> = (fn: (prev: A) => A) => void;
+export type UpdateFn<A> = (fn: (prev: A) => A) => void;
 
 type MutableRefObject<S> = {
   current: S;
@@ -32,17 +31,17 @@ export type Lens<A> = {
    * Refines the lens by a single property.
    * @param key The property key.
    */
-  prop<K extends keyof A>(key: K): Lens<A[K]>;
+  refine<K extends keyof A>(key: K): Lens<A[K]>;
   /**
    * Deeply refines the lens by a property key path.
    * @param keyPath The property key path.
    */
-  props<K extends Paths<A> & string>(keyPath: K): Lens<GetDeep<A, K>>;
+  refineDeep<K extends Paths<A> & string>(keyPath: K): Lens<GetDeep<A, K>>;
   /**
-   * Sets the value of the lens.
+   * Updates the value of the root reference at the current refinement.
    * @param fn A function that receives the previous value and returns the next value.
    */
-  set: LensSet<A>;
+  update: UpdateFn<A>;
   /**
    * Subscribes to changes to the lens.
    * @param fn A function that is called when the lens changes.
@@ -85,17 +84,19 @@ class InternalLens<S extends object, A> {
   }
 }
 
-export class RefLens<S extends object, A> implements Lens<A> {
+class RefLens<S extends object, A> implements Lens<A> {
   static fromValue<S extends object>(current: S): Lens<S> {
-    return RefLens.fromRef({ current });
-  }
+    const lens = InternalLens.root<S>();
 
-  static fromRef<S extends object>(rootRef: MutableRefObject<S>): Lens<S> {
     const rootParent: Parent = {
       notifyUp() {},
     };
 
-    return new RefLens(InternalLens.root<S>(), rootParent, rootRef);
+    const rootRef: MutableRefObject<S> = {
+      current,
+    };
+
+    return new RefLens(lens, rootParent, rootRef);
   }
 
   #subscribers: Set<Subscriber> = new Set();
@@ -114,7 +115,7 @@ export class RefLens<S extends object, A> implements Lens<A> {
     return this.#lens.get(this.#rootRef.current);
   }
 
-  prop<K extends keyof A>(key: K): Lens<A[K]> {
+  refine<K extends keyof A>(key: K): Lens<A[K]> {
     let refLens = this.#children[key];
 
     if (!refLens) {
@@ -129,17 +130,17 @@ export class RefLens<S extends object, A> implements Lens<A> {
     return refLens;
   }
 
-  props<K extends Paths<A> & string>(keyPath: K): Lens<GetDeep<A, K>> {
+  refineDeep<K extends Paths<A> & string>(keyPath: K): Lens<GetDeep<A, K>> {
     let lens = this as Lens<any>;
 
     for (const key of keyPath.split(".")) {
-      lens = lens.prop(key);
+      lens = lens.refine(key);
     }
 
     return lens as Lens<GetDeep<A, K>>;
   }
 
-  set(fn: (prev: A) => A): void {
+  update(fn: (prev: A) => A): void {
     let prev: A;
 
     /**

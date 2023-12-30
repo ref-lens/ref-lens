@@ -71,7 +71,7 @@ const innerMake = <A>(lens: Lens<A>): LensProxy<A> => {
         if (isArray) {
           return a.length;
         } else if (a.length !== undefined) {
-          return lens.prop("length" as keyof A);
+          return lens.refine("length" as keyof A);
         } else {
           return undefined;
         }
@@ -95,7 +95,7 @@ const innerMake = <A>(lens: Lens<A>): LensProxy<A> => {
         }
       }
 
-      return makeProxy(lens.prop(key));
+      return makeProxy(lens.refine(key));
     },
 
     ownKeys(_target) {

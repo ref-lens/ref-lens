@@ -8,8 +8,8 @@ import { Lens, makeLens } from "./lens";
 
 test("subscribes to changes", () => {
   const lens = makeLens({ foo: { bar: { baz: 0 } } });
-  const barLens = lens.prop("foo").prop("bar");
-  const bazLens = barLens.prop("baz");
+  const barLens = lens.refine("foo").refine("bar");
+  const bazLens = barLens.refine("baz");
 
   const { result: barResult } = renderHook(() => useLens(barLens));
   const { result: bazResult } = renderHook(() => useLens(bazLens));
@@ -76,16 +76,16 @@ test("only re-renders values in a list if their lens value has changed", () => {
 
   act(() => {
     lens
-      .prop("foo")
-      .prop(0)
-      .prop("bar")
-      .set((prev) => prev + 1);
+      .refine("foo")
+      .refine(0)
+      .refine("bar")
+      .update((prev) => prev + 1);
   });
 
   expect(renderCount).toEqual(4);
 
   act(() => {
-    lens.prop("foo").set((arr) => {
+    lens.refine("foo").update((arr) => {
       let [first, second, ...rest] = arr;
 
       first = { bar: first.bar + 1 };
@@ -131,7 +131,7 @@ test("can handle discriminated union", () => {
   expect(logValue).toHaveBeenCalledTimes(1);
 
   act(() => {
-    lens.set(() => ({ type: "loading" }));
+    lens.update(() => ({ type: "loading" }));
   });
 
   expect(getByTestId("container").textContent).toEqual("Loading...");
@@ -157,11 +157,11 @@ test("renders a list of values", () => {
 
   expect(getByTestId("container").textContent).toEqual("012");
 
-  act(() => lens.set((prev) => [...prev, { value: 3 }]));
+  act(() => lens.update((prev) => [...prev, { value: 3 }]));
 
   expect(getByTestId("container").textContent).toEqual("0123");
 
-  act(() => lens.set((prev) => []));
+  act(() => lens.update((prev) => []));
 
   expect(getByTestId("container").textContent).toEqual("");
 });
@@ -191,11 +191,11 @@ test("renders lenses from a list of lenses", () => {
 
   expect(getByTestId("container").textContent).toEqual("012");
 
-  act(() => lens.set((prev) => [...prev, { foo: { value: 3 } }]));
+  act(() => lens.update((prev) => [...prev, { foo: { value: 3 } }]));
 
   expect(getByTestId("container").textContent).toEqual("0123");
 
-  act(() => lens.set((prev) => []));
+  act(() => lens.update((prev) => []));
 
   expect(getByTestId("container").textContent).toEqual("");
 });
@@ -236,9 +236,9 @@ test("limits re-rendering subscribed lens taht change their value", () => {
 
   act(() =>
     lens
-      .prop(1)
-      .prop("value")
-      .set((prev) => prev + 1)
+      .refine(1)
+      .refine("value")
+      .update((prev) => prev + 1)
   );
 
   expect(getByTestId("container").textContent).toEqual("022");
@@ -247,29 +247,24 @@ test("limits re-rendering subscribed lens taht change their value", () => {
 
   act(() =>
     lens
-      .prop(0)
-      .prop("value")
-      .set((prev) => prev + 1)
+      .refine(0)
+      .refine("value")
+      .update((prev) => prev + 1)
   );
 
   expect(getByTestId("container").textContent).toEqual("122");
 
   // noop shouldn't trigger a render
-  act(() =>
-    lens
-      .prop(0)
-      .prop("value")
-      .set((prev) => prev)
-  );
+  act(() => lens.refineDeep("0.value").update((prev) => prev));
 
   // noop shouldn't trigger a render
-  act(() => lens.prop(0).set((prev) => prev));
+  act(() => lens.refine(0).update((prev) => prev));
 
   // noop shouldn't trigger a render
-  act(() => lens.set((prev) => prev));
+  act(() => lens.update((prev) => prev));
 
   // creating a new array will trigger a render because the reference changes
-  act(() => lens.set((prev) => [...prev]));
+  act(() => lens.update((prev) => [...prev]));
 
   expect(logApp).toHaveBeenCalledTimes(4);
   expect(logApp).toHaveBeenNthCalledWith(1, [{ value: 0 }, { value: 1 }, { value: 2 }]);
@@ -307,7 +302,7 @@ test("handles having the lens replaced", () => {
         <button data-testid="button" onClick={() => setUseB(true)}>
           useB
         </button>
-        <Child lens={lens.prop("foo").prop("bar")} />
+        <Child lens={lens.refineDeep("foo.bar")} />
       </div>
     );
   };
