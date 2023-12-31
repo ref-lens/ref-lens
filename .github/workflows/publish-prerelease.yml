@@ -20,7 +20,7 @@ jobs:
 
       # Write the prerelease version to the package.json
       # in the format of 0.0.0-<commit hash>
-      - run: npm version prerelease --preid=dev-$GITHUB_SHA --no-git-tag-version
+      - run: npm version prerelease --preid=dev.$GITHUB_SHA --no-git-tag-version
 
       - run: npm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
         env:
