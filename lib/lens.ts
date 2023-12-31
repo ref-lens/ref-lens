@@ -29,15 +29,15 @@ export type Lens<A> = {
    */
   get current(): A;
   /**
-   * Refines the lens by a single property.
+   * Refines the lens by a single property key.
    * @param key The property key.
    */
-  refine<K extends keyof A>(key: K): Lens<A[K]>;
+  prop<K extends keyof A>(key: K): Lens<A[K]>;
   /**
    * Deeply refines the lens by a property key path.
    * @param keyPath The property key path.
    */
-  refineDeep<K extends Paths<A> & string>(keyPath: K): Lens<GetDeep<A, K>>;
+  deepProp<K extends Paths<A> & string>(keyPath: K): Lens<GetDeep<A, K>>;
   /**
    * Updates the value of the root reference at the current refinement.
    * @param fn A function that receives the previous value and returns the next value.
@@ -61,15 +61,26 @@ class InternalLens<S extends object, A> {
 
   constructor(public get: GetFn<S, A>, public set: SetFn<S, A>) {}
 
-  refine<K extends keyof A>(key: K): InternalLens<S, A[K]> {
+  refine<B>(get: GetFn<A, B>, set: SetFn<A, B>): InternalLens<S, B> {
     return new InternalLens(
       (state) => {
-        const current = this.get(state);
-        return current[key];
+        const prev = this.get(state);
+        return get(prev);
       },
       (state, value) => {
-        const current = this.get(state);
-        let copy = current;
+        const prev = this.get(state);
+        const next = set(prev, value);
+
+        return this.set(state, next);
+      }
+    );
+  }
+
+  prop<K extends keyof A>(key: K): InternalLens<S, A[K]> {
+    return this.refine(
+      (prev) => prev[key],
+      (prev, value) => {
+        let copy = prev;
 
         if (Array.isArray(copy)) {
           copy = [...copy] as A;
@@ -79,7 +90,7 @@ class InternalLens<S extends object, A> {
 
         copy[key] = value;
 
-        return this.set(state, copy);
+        return copy;
       }
     );
   }
@@ -116,11 +127,11 @@ class RefLens<S extends object, A> implements Lens<A> {
     return this.#lens.get(this.#rootRef.current);
   }
 
-  refine<K extends keyof A>(key: K): RefLens<S, A[K]> {
+  prop<K extends keyof A>(key: K): RefLens<S, A[K]> {
     let refLens = this.#children[key];
 
     if (!refLens) {
-      const lens = this.#lens.refine(key);
+      const lens = this.#lens.prop(key);
       const parent: Parent = { notifyUp: () => this.#notifyUp() };
 
       refLens = new RefLens(lens, parent, this.#rootRef);
@@ -131,11 +142,11 @@ class RefLens<S extends object, A> implements Lens<A> {
     return refLens;
   }
 
-  refineDeep<K extends Paths<A> & string>(keyPath: K): RefLens<S, GetDeep<A, K>> {
+  deepProp<K extends Paths<A> & string>(keyPath: K): RefLens<S, GetDeep<A, K>> {
     let lens = this as Lens<any>;
 
     for (const key of keyPath.split(".")) {
-      lens = lens.refine(key);
+      lens = lens.prop(key);
     }
 
     return lens as RefLens<S, GetDeep<A, K>>;
@@ -164,6 +175,8 @@ class RefLens<S extends object, A> implements Lens<A> {
     this.#subscribers.add(fn);
     return () => this.#subscribers.delete(fn);
   }
+
+  // cast<K extends keyof A>(key: K): void {}
 
   #set(value: A): void {
     const prevS = this.#rootRef.current;

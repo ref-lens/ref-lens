@@ -27,7 +27,7 @@ test("can iterate a list and return values to a lens", () => {
     result.push(item);
   }
 
-  expect(result).toEqual([lens.refine(0).current, lens.refine(1).current]);
+  expect(result).toEqual([lens.prop(0).current, lens.prop(1).current]);
 });
 
 test("can transform back into the same lens", () => {
@@ -40,7 +40,7 @@ test("scalars are not wrapped in proxies", () => {
   const lens = makeLens({ foo: "bar" });
   const proxy = makeProxy(lens);
 
-  expect(proxy.foo).toBe(lens.refine("foo").current);
+  expect(proxy.foo).toBe(lens.prop("foo").current);
 });
 
 test("can be converted into a primitive", () => {
@@ -105,13 +105,13 @@ test("keeps the same lens reference through iteration", () => {
 
   const result = mapArray(proxy, (item) => item.toLens());
 
-  expect(lens.refine(0)).toBe(result[0]);
-  expect(lens.refine(1)).toBe(result[1]);
+  expect(lens.prop(0)).toBe(result[0]);
+  expect(lens.prop(1)).toBe(result[1]);
 });
 
 test("keeps the same reference to an index when the list is updated", () => {
   const lens = makeLens([{ foo: "bar" }, { foo: "baz" }]);
-  const lens0 = lens.refine(0);
+  const lens0 = lens.prop(0);
   const proxy = makeProxy(lens0);
 
   expect(proxy.foo).toBe("bar");
@@ -123,7 +123,7 @@ test("keeps the same reference to an index when the list is updated", () => {
 
 test("reacts to mutated objects", () => {
   const lens = makeLens({ foo: ["bar"] });
-  const fooLens = lens.refine("foo");
+  const fooLens = lens.prop("foo");
   const proxy = makeProxy(lens);
 
   expect(proxy.foo.toLens()).toBe(fooLens);
@@ -136,7 +136,7 @@ test("reacts to mutated objects", () => {
 
 test("can proxy scalar values", () => {
   const lens = makeLens({ foo: { bar: { baz: 0 } } });
-  const bazLens = lens.refine("foo").refine("bar").refine("baz");
+  const bazLens = lens.prop("foo").prop("bar").prop("baz");
 
   const proxy = makeProxy(bazLens);
 
@@ -152,22 +152,22 @@ test("can descriminate a union back into a lens", () => {
   const proxy = makeProxy(lens);
 
   // @ts-expect-error
-  lens.refine("foo");
+  lens.prop("foo");
 
   if (proxy.type === "b") {
-    proxy.toLens().refine("bar");
+    proxy.toLens().prop("bar");
 
     // @ts-expect-error
-    proxy.toLens().refine("foo");
+    proxy.toLens().prop("foo");
   }
 
   if (proxy.type === "a") {
-    const fooLens = proxy.toLens().refine("foo");
+    const fooLens = proxy.toLens().prop("foo");
 
     expect(fooLens.current).toBe("bar");
     expect(proxy.foo).toBe("bar");
 
     // @ts-expect-error
-    proxy.toLens().refine("bar");
+    proxy.toLens().prop("bar");
   }
 });

@@ -8,8 +8,8 @@ import { Lens, makeLens } from "./lens";
 
 test("subscribes to changes", () => {
   const lens = makeLens({ foo: { bar: { baz: 0 } } });
-  const barLens = lens.refine("foo").refine("bar");
-  const bazLens = barLens.refine("baz");
+  const barLens = lens.prop("foo").prop("bar");
+  const bazLens = barLens.prop("baz");
 
   const { result: barResult } = renderHook(() => useLens(barLens));
   const { result: bazResult } = renderHook(() => useLens(bazLens));
@@ -76,16 +76,16 @@ test("only re-renders values in a list if their lens value has changed", () => {
 
   act(() => {
     lens
-      .refine("foo")
-      .refine(0)
-      .refine("bar")
+      .prop("foo")
+      .prop(0)
+      .prop("bar")
       .update((prev) => prev + 1);
   });
 
   expect(renderCount).toEqual(4);
 
   act(() => {
-    lens.refine("foo").update((arr) => {
+    lens.prop("foo").update((arr) => {
       let [first, second, ...rest] = arr;
 
       first = { bar: first.bar + 1 };
@@ -236,8 +236,8 @@ test("limits re-rendering subscribed lens taht change their value", () => {
 
   act(() =>
     lens
-      .refine(1)
-      .refine("value")
+      .prop(1)
+      .prop("value")
       .update((prev) => prev + 1)
   );
 
@@ -247,18 +247,18 @@ test("limits re-rendering subscribed lens taht change their value", () => {
 
   act(() =>
     lens
-      .refine(0)
-      .refine("value")
+      .prop(0)
+      .prop("value")
       .update((prev) => prev + 1)
   );
 
   expect(getByTestId("container").textContent).toEqual("122");
 
   // noop shouldn't trigger a render
-  act(() => lens.refineDeep("0.value").update((prev) => prev));
+  act(() => lens.deepProp("0.value").update((prev) => prev));
 
   // noop shouldn't trigger a render
-  act(() => lens.refine(0).update((prev) => prev));
+  act(() => lens.prop(0).update((prev) => prev));
 
   // noop shouldn't trigger a render
   act(() => lens.update((prev) => prev));
@@ -302,7 +302,7 @@ test("handles having the lens replaced", () => {
         <button data-testid="button" onClick={() => setUseB(true)}>
           useB
         </button>
-        <Child lens={lens.refineDeep("foo.bar")} />
+        <Child lens={lens.deepProp("foo.bar")} />
       </div>
     );
   };

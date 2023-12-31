@@ -1,4 +1,4 @@
-import { makeLens } from "./lens";
+import { Lens, makeLens } from "./lens";
 
 test("can get the current value", () => {
   const lens = makeLens({ foo: "bar" });
@@ -16,7 +16,7 @@ test("can update the root state", () => {
 
 test("can refine the lens", () => {
   const lens = makeLens({ foo: { bar: { baz: 0 } } });
-  const bazLens = lens.refineDeep("foo.bar.baz");
+  const bazLens = lens.deepProp("foo.bar.baz");
 
   bazLens.update((prev) => prev + 5);
 
@@ -26,10 +26,10 @@ test("can refine the lens", () => {
 test("can subscribe to all changes", () => {
   const rootLens = makeLens({ foo: { bar: { baz: 0 } }, ping: { pong: "hello" } });
 
-  const barLens = rootLens.refineDeep("foo.bar");
-  const bazLens = barLens.refine("baz");
-  const pingLens = rootLens.refine("ping");
-  const pongLens = pingLens.refine("pong");
+  const barLens = rootLens.deepProp("foo.bar");
+  const bazLens = barLens.prop("baz");
+  const pingLens = rootLens.prop("ping");
+  const pongLens = pingLens.prop("pong");
 
   const rootSubscriber = vi.fn();
   const barSubscriber = vi.fn();
@@ -82,9 +82,9 @@ test("can subscribe to all changes", () => {
 
 test("with lists", () => {
   const rootLens = makeLens({ foo: { bar: [123] } });
-  const fooLens = rootLens.refine("foo");
-  const barLens = fooLens.refine("bar");
-  const firstBarLens = barLens.refine(0);
+  const fooLens = rootLens.prop("foo");
+  const barLens = fooLens.prop("bar");
+  const firstBarLens = barLens.prop(0);
 
   const barSubscriber = vi.fn();
   const fooSubscriber = vi.fn();
@@ -122,8 +122,8 @@ test("can handle descriminted unions", () => {
   type State = Loading | Loaded;
 
   const lens = makeLens<State>({ type: "loaded", value: 0 });
-  const typeLens = lens.refine("type");
-  const valueLens = lens.refine("value" as any);
+  const typeLens = lens.prop("type");
+  const valueLens = lens.prop("value" as any);
 
   const typeSubscriber = vi.fn();
   const valueSubscriber = vi.fn();
@@ -148,7 +148,7 @@ test("can handle descriminted unions", () => {
 
 test("does not affect lenses of iterables when the value is removed", () => {
   const lens = makeLens([{ foo: 1 }, { foo: 2 }]);
-  const lens0 = lens.refine(0);
+  const lens0 = lens.prop(0);
 
   expect(lens0.current.foo).toBe(1);
 
@@ -163,7 +163,7 @@ test("does not affect lenses of iterables when the value is removed", () => {
 
 test("does not affect subscribers of iterables when the value is removed", () => {
   const lens = makeLens([{ foo: 1 }, { foo: 2 }]);
-  const lens0 = lens.refine(0);
+  const lens0 = lens.prop(0);
 
   const subscriber = vi.fn();
 
@@ -181,9 +181,9 @@ test("does not affect subscribers of iterables when the value is removed", () =>
 
 test("does not update an empty value", () => {
   const lens = makeLens([{ foo: { value: 1 } }, { foo: { value: 2 } }]);
-  const lens0 = lens.refine(0);
-  const lens1 = lens.refine(1);
-  const lens0Foo = lens.refineDeep("0.foo");
+  const lens0 = lens.prop(0);
+  const lens1 = lens.prop(1);
+  const lens0Foo = lens.deepProp("0.foo");
 
   const subscriber = vi.fn();
 
@@ -209,6 +209,13 @@ test("does not update an empty value", () => {
 test("can deeply get props inside of arrays", () => {
   const lens = makeLens({ foo: { bar: { baz: [{ haha: 1 }] } } });
 
-  expect(lens.refineDeep("foo.bar.baz").current).toEqual([{ haha: 1 }]);
-  expect(lens.refineDeep("foo.bar.baz.0.haha").current).toEqual(1);
+  expect(lens.deepProp("foo.bar.baz").current).toEqual([{ haha: 1 }]);
+  expect(lens.deepProp("foo.bar.baz.0.haha").current).toEqual(1);
 });
+
+// test("can refine a type when only one key matches", () => {
+//   type SLens =
+//     | Lens<{ type: "string"; value: string }>
+//     | Lens<{ type: "number" }>
+//     | Lens<{ type: "recursive"; value: boolean; next: SLens }>;
+// });
