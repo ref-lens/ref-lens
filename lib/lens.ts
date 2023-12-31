@@ -116,7 +116,7 @@ class RefLens<S extends object, A> implements Lens<A> {
     return this.#lens.get(this.#rootRef.current);
   }
 
-  refine<K extends keyof A>(key: K): Lens<A[K]> {
+  refine<K extends keyof A>(key: K): RefLens<S, A[K]> {
     let refLens = this.#children[key];
 
     if (!refLens) {
@@ -131,14 +131,14 @@ class RefLens<S extends object, A> implements Lens<A> {
     return refLens;
   }
 
-  refineDeep<K extends Paths<A> & string>(keyPath: K): Lens<GetDeep<A, K>> {
+  refineDeep<K extends Paths<A> & string>(keyPath: K): RefLens<S, GetDeep<A, K>> {
     let lens = this as Lens<any>;
 
     for (const key of keyPath.split(".")) {
       lens = lens.refine(key);
     }
 
-    return lens as Lens<GetDeep<A, K>>;
+    return lens as RefLens<S, GetDeep<A, K>>;
   }
 
   update(fn: (prev: A) => A): void {
@@ -165,7 +165,7 @@ class RefLens<S extends object, A> implements Lens<A> {
     return () => this.#subscribers.delete(fn);
   }
 
-  #set(value: A) {
+  #set(value: A): void {
     const prevS = this.#rootRef.current;
     const nextS = this.#lens.set(prevS, value);
 
@@ -175,7 +175,7 @@ class RefLens<S extends object, A> implements Lens<A> {
     this.#parent.notifyUp();
   }
 
-  #notifyDown(prev: S, next: S) {
+  #notifyDown(prev: S, next: S): void {
     /**
      * Wrap this in a try/catch because the getter may throw an error.
      * This can happen in lists where a getter has been removed.
@@ -201,12 +201,12 @@ class RefLens<S extends object, A> implements Lens<A> {
     this.#notifySelf();
   }
 
-  #notifyUp() {
+  #notifyUp(): void {
     this.#notifySelf();
     this.#parent.notifyUp();
   }
 
-  #notifySelf() {
+  #notifySelf(): void {
     this.#subscribers.forEach((fn) => fn());
   }
 }
