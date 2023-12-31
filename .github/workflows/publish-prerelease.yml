@@ -1,4 +1,4 @@
-name: CI checks
+name: Publish prerelease
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  build:
+  publish-prerelease:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,6 +22,8 @@ jobs:
       # in the format of 0.0.0-<commit hash>
       - run: npm version prerelease --preid=$GITHUB_SHA --no-git-tag-version
 
-      - run: npm publish
+      - run: npm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - run: npm publish
