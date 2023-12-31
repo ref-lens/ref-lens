@@ -1,4 +1,4 @@
-import type { Paths } from "type-fest";
+import type { Paths } from "type-fest/source/paths";
 
 // prettier-ignore
 type GetDeep<T, K extends string> = 

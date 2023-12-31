@@ -6,6 +6,9 @@
   "main": "dist/main.umd.js",
   "module": "dist/main.es.js",
   "types": "dist/main.d.ts",
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "import": "./dist/main.es.js",
@@ -14,6 +17,7 @@
     }
   },
   "scripts": {
+    "prepublish": "npm run build",
     "build": "vite build",
     "test": "vitest"
   },

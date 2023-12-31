@@ -25,6 +25,7 @@ export default defineConfig({
   plugins: [
     dts({
       entryRoot: path.resolve(__dirname, "lib"),
+      exclude: ["**/*.test.ts", "**/*.test.tsx"],
     }),
   ],
 });
