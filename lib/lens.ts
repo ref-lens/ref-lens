@@ -16,6 +16,8 @@ type Parent = {
   notifyUp(): void;
 };
 
+type SafeResult<A> = { success: true; value: A } | { success: false };
+
 export const Lens = {
   castUnion: <L extends Lens<any>>(lens: L): Lens<ExtractLensType<L>> => lens,
 };
@@ -25,6 +27,11 @@ export type Lens<A> = {
    * Gets the current value of the lens.
    */
   get current(): A;
+
+  /**
+   * Safely gets the current value of the lens.
+   */
+  safeCurrent(): SafeResult<A>;
   /**
    * Refines the lens by a single property key.
    * @param key The property key.
@@ -122,6 +129,14 @@ class RefLens<S extends object, A> implements Lens<A> {
 
   get current(): A {
     return this.#lens.get(this.#rootRef.current);
+  }
+
+  safeCurrent(): SafeResult<A> {
+    try {
+      return { success: true, value: this.current };
+    } catch {
+      return { success: false };
+    }
   }
 
   prop<K extends keyof A>(key: K): RefLens<S, A[K]> {

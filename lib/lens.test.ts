@@ -232,3 +232,13 @@ test("can cast a union of lenses into a single lens", () => {
   expect(refineTypeWithoutCasting(lens).current).toBe("loading");
   expect(refineTypeWithCasting(lens).current).toBe("loading");
 });
+
+test("can safely get the value of the lens", () => {
+  const lens = makeLens({ foo: 1 });
+
+  expect(lens.safeCurrent()).toEqual({ success: true, value: { foo: 1 } });
+
+  const brokenLens = makeLens({ foo: { bar: 1 } }).deepProp("foo.bar.baz.0" as any);
+
+  expect(brokenLens.safeCurrent()).toEqual({ success: false });
+});

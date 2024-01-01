@@ -39,17 +39,13 @@ export const useLens = <L extends Lens<any>>(
     () =>
       lens.subscribe(() => {
         const prev = prevRef.current;
-        let next: A;
+        const next = lens.safeCurrent();
 
-        try {
-          next = lens.current;
-        } catch {
-          return;
-        }
+        if (!next.success) return;
 
-        const should = shouldTriggerRender(next, prev);
+        const should = shouldTriggerRender(next.value, prev);
 
-        prevRef.current = next;
+        prevRef.current = next.value;
 
         if (should) {
           forceRender();
