@@ -1,4 +1,4 @@
-import type { Paths } from "type-fest/source/paths";
+import { Paths } from "type-fest";
 import { ExtractLensType, GetDeep } from "./types";
 
 type Subscriber = () => void;
