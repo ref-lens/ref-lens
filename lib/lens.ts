@@ -203,6 +203,8 @@ class RefLens<S extends object, A> implements Lens<A> {
       if (Object.is(prevA, nextA)) return;
     } catch {}
 
+    this.#notifySelf();
+
     for (const key in this.#props) {
       const child = this.#props[key];
 
@@ -210,8 +212,6 @@ class RefLens<S extends object, A> implements Lens<A> {
 
       child.#notifyDown(prev, next);
     }
-
-    this.#notifySelf();
   }
 
   #notifyUp(): void {
