@@ -213,9 +213,22 @@ test("can deeply get props inside of arrays", () => {
   expect(lens.deepProp("foo.bar.baz.0.haha").current).toEqual(1);
 });
 
-// test("can refine a type when only one key matches", () => {
-//   type SLens =
-//     | Lens<{ type: "string"; value: string }>
-//     | Lens<{ type: "number" }>
-//     | Lens<{ type: "recursive"; value: boolean; next: SLens }>;
-// });
+test("can cast a union of lenses into a single lens", () => {
+  type LoadingState = { type: "loading" };
+  type LoadedState = { type: "loaded"; value: number };
+  type StateLens = Lens<LoadingState> | Lens<LoadedState>;
+
+  function refineTypeWithoutCasting(lens: StateLens) {
+    // @ts-expect-error
+    return lens.prop("type");
+  }
+
+  function refineTypeWithCasting(lens: StateLens) {
+    return Lens.castUnion(lens).prop("type");
+  }
+
+  const lens = makeLens<LoadingState>({ type: "loading" });
+
+  expect(refineTypeWithoutCasting(lens).current).toBe("loading");
+  expect(refineTypeWithCasting(lens).current).toBe("loading");
+});

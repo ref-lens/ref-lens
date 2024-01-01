@@ -1,11 +1,11 @@
 import React from "react";
 import { UpdateFn, type Lens } from "./lens";
 import { makeProxy, type LensProxy } from "./proxy";
+import { ExtractLensType } from "./types";
 
-type ExtractLensType<A> = A extends Lens<infer A1> ? A1 : never;
 type UseLensTuple<A> = [LensProxy<A>, UpdateFn<A>];
 
-export function useLens<L extends Lens<any>>(lens: L): UseLensTuple<ExtractLensType<L>> {
+export const useLens = <L extends Lens<any>>(lens: L): UseLensTuple<ExtractLensType<L>> => {
   type Update = UpdateFn<ExtractLensType<L>>;
 
   const [, forceRender] = React.useReducer((x) => x + 1, 0);
@@ -14,4 +14,4 @@ export function useLens<L extends Lens<any>>(lens: L): UseLensTuple<ExtractLensT
   const update = React.useCallback<Update>((fn) => lens.update(fn), [lens]);
 
   return [makeProxy(lens), update];
-}
+};

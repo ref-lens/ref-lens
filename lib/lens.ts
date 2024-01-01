@@ -1,12 +1,5 @@
 import type { Paths } from "type-fest/source/paths";
-
-// prettier-ignore
-type GetDeep<T, K extends string> = 
-  K extends keyof T ? T[K] :
-  K extends `${number}` ? (T extends any[] ? T[number] : never) :
-  K extends `${number}.${infer Rest}` ? (T extends any[] ? GetDeep<T[number], Rest> : never) :
-  K extends `${infer First}.${infer Rest}` ? (First extends keyof T ? GetDeep<T[First], Rest> : never) :
-  never;
+import { ExtractLensType, GetDeep } from "./types";
 
 type Subscriber = () => void;
 type Unsubscribe = () => void;
@@ -21,6 +14,10 @@ type MutableRefObject<S> = {
 
 type Parent = {
   notifyUp(): void;
+};
+
+export const Lens = {
+  castUnion: <L extends Lens<any>>(lens: L): Lens<ExtractLensType<L>> => lens,
 };
 
 export type Lens<A> = {
@@ -112,7 +109,7 @@ class RefLens<S extends object, A> implements Lens<A> {
   }
 
   #subscribers: Set<Subscriber> = new Set();
-  #children: { [K in keyof A]?: RefLens<S, A[K]> } = {};
+  #props: { [K in keyof A]?: RefLens<S, A[K]> } = {};
   #lens: InternalLens<S, A>;
   #parent: Parent;
   #rootRef: MutableRefObject<S>;
@@ -128,7 +125,7 @@ class RefLens<S extends object, A> implements Lens<A> {
   }
 
   prop<K extends keyof A>(key: K): RefLens<S, A[K]> {
-    let refLens = this.#children[key];
+    let refLens = this.#props[key];
 
     if (!refLens) {
       const lens = this.#lens.prop(key);
@@ -136,7 +133,7 @@ class RefLens<S extends object, A> implements Lens<A> {
 
       refLens = new RefLens(lens, parent, this.#rootRef);
 
-      this.#children[key] = refLens;
+      this.#props[key] = refLens;
     }
 
     return refLens;
@@ -203,8 +200,8 @@ class RefLens<S extends object, A> implements Lens<A> {
       if (Object.is(prevA, nextA)) return;
     } catch {}
 
-    for (const key in this.#children) {
-      const child = this.#children[key];
+    for (const key in this.#props) {
+      const child = this.#props[key];
 
       if (!child) continue;
 
