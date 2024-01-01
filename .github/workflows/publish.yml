@@ -2,10 +2,6 @@ name: Publish
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: "The version to publish"
-        required: true
 
 jobs:
   publish:
@@ -23,10 +19,6 @@ jobs:
       - run: npx tsc
 
       - run: npm test
-
-      # Write the prerelease version to the package.json
-      # in the format of 0.0.0-dev.<commit hash>
-      - run: npm version ${{ inputs.version}}
 
       - run: npm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
         env:

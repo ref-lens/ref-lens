@@ -318,3 +318,38 @@ test("handles having the lens replaced", () => {
   expect(getByTestId("parent-container").textContent).toEqual('{"bar":"hello"}');
   expect(getByTestId("child-container").textContent).toEqual("hello");
 });
+
+test("can be configured to only render when a specific condition is met", () => {
+  const lens = makeLens([{ value: 0 }, { value: 1 }, { value: 2 }]);
+
+  const logApp = vi.fn();
+
+  const App = () => {
+    const [proxy] = useLens(lens, (prev, next) => prev.length !== next.length);
+
+    logApp(proxy.toJSON());
+
+    return null;
+  };
+
+  render(<App />);
+
+  expect(logApp).toHaveBeenCalledTimes(1);
+
+  act(() => lens.update((prev) => [...prev, { value: 3 }]));
+
+  expect(logApp).toHaveBeenCalledTimes(2);
+
+  act(() => lens.update((prev) => [...prev, { value: 4 }]));
+
+  expect(logApp).toHaveBeenCalledTimes(3);
+
+  act(() =>
+    lens.update((prev) => {
+      const [first, ...rest] = prev;
+      return [{ value: first.value + 1 }, ...rest];
+    })
+  );
+
+  expect(logApp).toHaveBeenCalledTimes(3);
+});
