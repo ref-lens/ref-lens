@@ -7,6 +7,7 @@ export default defineConfig({
     globals: true,
   },
   build: {
+    minify: false,
     sourcemap: true,
     lib: {
       entry: path.resolve(__dirname, "lib/main.ts"),
@@ -21,9 +22,6 @@ export default defineConfig({
         },
       },
     },
-  },
-  esbuild: {
-    keepNames: true,
   },
   plugins: [
     dts({
