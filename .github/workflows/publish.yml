@@ -1,0 +1,35 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "The version to publish"
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "20.x"
+
+      - run: npm ci
+
+      - run: npx tsc
+
+      - run: npm test
+
+      # Write the prerelease version to the package.json
+      # in the format of 0.0.0-dev.<commit hash>
+      - run: npm version ${{ inputs.version}}
+
+      - run: npm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - run: npm publish
