@@ -22,6 +22,9 @@ export default defineConfig({
       },
     },
   },
+  esbuild: {
+    keepNames: true,
+  },
   plugins: [
     dts({
       entryRoot: path.resolve(__dirname, "lib"),
