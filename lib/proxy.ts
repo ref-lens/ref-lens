@@ -7,7 +7,7 @@ type BaseProxy<A> = {
   toLens(): Lens<A>;
 };
 
-type ArrayLensProxy<A extends any[]> = BaseProxy<A> & Array<LensProxy<A[number]>>;
+type ArrayLensProxy<A extends any[]> = Array<LensProxy<A[number]>> & BaseProxy<A>;
 
 type ObjectLensProxy<A extends object> = {
   [K in keyof A]: LensProxy<A[K]>;

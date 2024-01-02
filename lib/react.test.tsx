@@ -297,7 +297,7 @@ test("handles having the lens replaced", () => {
 
     return (
       <div>
-        <div data-testid="parent-container">{JSON.stringify(proxy.foo.toJSON())}</div>
+        <div data-testid="parent-container">{JSON.stringify(proxy.foo)}</div>
         <button data-testid="button" onClick={() => setUseB(true)}>
           useB
         </button>
