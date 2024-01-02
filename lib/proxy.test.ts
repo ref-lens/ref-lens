@@ -74,6 +74,16 @@ test("can map arrays in arrays", () => {
   expect(result[0]).toEqual(expected);
 });
 
+test("can reduce arrays", () => {
+  const lens = makeLens([{ count: 1 }, { count: 2 }, { count: 3 }]);
+  const proxy = makeProxy(lens);
+
+  const result = proxy.reduce((prev, next) => prev + next.count, 0);
+  const expected = proxy[0].count + proxy[1].count + proxy[2].count;
+
+  expect(result).toBe(expected);
+});
+
 test("can map arrays in objects", () => {
   const lens = makeLens({ foo: ["bar", "baz"] });
   const proxy = makeProxy(lens);

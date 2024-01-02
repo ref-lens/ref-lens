@@ -3,20 +3,11 @@ import type { Lens } from "./lens";
 type Scalar = string | number | bigint | boolean | null | undefined;
 
 type BaseProxy<A> = {
-  toString(): string;
   toJSON(): A;
   toLens(): Lens<A>;
 };
 
-type ArrayLensProxy<A extends any[]> = {
-  [index: number]: LensProxy<A[number]>;
-  [Symbol.iterator](): Iterator<LensProxy<A[number]>>;
-  length: number;
-  map<B>(fn: (item: LensProxy<A[number]>, index: number, array: ArrayLensProxy<A>) => B): B[];
-  filter(
-    fn: (item: LensProxy<A[number]>, index: number, array: ArrayLensProxy<A>) => boolean
-  ): Array<LensProxy<A[number]>>;
-} & BaseProxy<A>;
+type ArrayLensProxy<A extends any[]> = BaseProxy<A> & Array<LensProxy<A[number]>>;
 
 type ObjectLensProxy<A extends object> = {
   [K in keyof A]: LensProxy<A[K]>;
@@ -64,39 +55,12 @@ const innerMake = <A>(lens: Lens<A>): LensProxy<A> => {
         return undefined;
       }
 
-      if (key === Symbol.toPrimitive) {
-        return () => lens.current;
-      }
-
-      if (key === "length") {
-        const a = lens.current as any;
-        const isArray = Array.isArray(a);
-
-        if (isArray) {
-          return a.length;
-        } else if (a.length !== undefined) {
-          return lens.prop("length" as keyof A);
-        } else {
-          return undefined;
-        }
-      }
-
       if (key === "toJSON") {
         return () => lens.current;
       }
 
       if (key === "toLens") {
         return () => lens;
-      }
-
-      if (key === "toString") {
-        const a = lens.current as any;
-
-        if (a.toString !== undefined) {
-          return () => a.toString();
-        } else {
-          return undefined;
-        }
       }
 
       return makeProxy(lens.prop(key));
