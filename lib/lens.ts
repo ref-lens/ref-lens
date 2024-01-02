@@ -16,8 +16,6 @@ type Parent = {
   notifyUp(): void;
 };
 
-type SafeResult<A> = { success: true; value: A } | { success: false };
-
 export const Lens = {
   castUnion: <L extends Lens<any>>(lens: L): Lens<ExtractLensType<L>> => lens,
 };

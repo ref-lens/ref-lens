@@ -1,5 +1,5 @@
 import { makeLens } from "./lens";
-import { filterArray, makeProxy, mapArray } from "./proxy";
+import { makeProxy } from "./proxy";
 
 test("wraps children in lenses", () => {
   const lens = makeLens({ foo: "bar" });
@@ -58,7 +58,7 @@ test("can map objects in arrays", () => {
   const lens = makeLens([{ foo: "bar" }]);
   const proxy = makeProxy(lens);
 
-  const result = mapArray(proxy, (item) => item.foo);
+  const result = proxy.map((item) => item.foo);
   const expected = proxy[0].foo;
 
   expect(result[0]).toBe(expected);
@@ -68,7 +68,7 @@ test("can map arrays in arrays", () => {
   const lens = makeLens([["foo", "bar"]]);
   const proxy = makeProxy(lens);
 
-  const result = mapArray(proxy, (item) => Array.from(item));
+  const result = proxy.map((item) => Array.from(item));
   const expected = Array.from(proxy[0]);
 
   expect(result[0]).toEqual(expected);
@@ -78,7 +78,7 @@ test("can map arrays in objects", () => {
   const lens = makeLens({ foo: ["bar", "baz"] });
   const proxy = makeProxy(lens);
 
-  const result = mapArray(proxy.foo, (item) => item);
+  const result = proxy.foo.map((item) => item);
   const expected = Array.from(proxy.foo);
 
   expect(result).toEqual(expected);
@@ -88,13 +88,13 @@ test("can filter objects in arrays", () => {
   const lens = makeLens([{ foo: "bar" }, { foo: "baz" }]);
   const proxy = makeProxy(lens);
 
-  const resultA = filterArray(proxy, (item) => item.foo === "bar" || item.foo === "bif");
+  const resultA = proxy.filter((item) => item.foo === "bar" || item.foo === "bif");
 
   expect(resultA.length).toBe(1);
 
   lens.update((prev) => prev.concat({ foo: "bif" }));
 
-  const resultB = filterArray(proxy, (item) => item.foo === "bar" || item.foo === "bif");
+  const resultB = proxy.filter((item) => item.foo === "bar" || item.foo === "bif");
 
   expect(resultB.length).toBe(2);
 });
@@ -103,7 +103,7 @@ test("keeps the same lens reference through iteration", () => {
   const lens = makeLens([{ foo: "bar" }, { foo: "baz" }]);
   const proxy = makeProxy(lens);
 
-  const result = mapArray(proxy, (item) => item.toLens());
+  const result = proxy.map((item) => item.toLens());
 
   expect(lens.prop(0)).toBe(result[0]);
   expect(lens.prop(1)).toBe(result[1]);

@@ -2,7 +2,6 @@
 
 import { act, render, renderHook } from "@testing-library/react";
 import React from "react";
-import { mapArray } from "./proxy";
 import { useLens } from "./react";
 import { Lens, makeLens } from "./lens";
 
@@ -59,7 +58,7 @@ test("only re-renders values in a list if their lens value has changed", () => {
 
     return (
       <>
-        {mapArray(value.foo, (item, index) => (
+        {value.foo.map((item, index) => (
           <Child key={index} lens={item.toLens()} />
         ))}
       </>
@@ -146,7 +145,7 @@ test("renders a list of values", () => {
 
     return (
       <div data-testid="container">
-        {mapArray(proxy, (item, index) => (
+        {proxy.map((item, index) => (
           <div key={item.value}>{item.value}</div>
         ))}
       </div>
@@ -174,7 +173,7 @@ test("renders lenses from a list of lenses", () => {
 
     return (
       <div data-testid="container">
-        {mapArray(proxy, (item, index) => (
+        {proxy.map((item, index) => (
           <Child key={index} lens={item.toLens()} />
         ))}
       </div>
@@ -213,7 +212,7 @@ test("limits re-rendering subscribed lens taht change their value", () => {
 
     return (
       <div data-testid="container">
-        {mapArray(proxy, (item, index) => (
+        {proxy.map((item, index) => (
           <Child key={index} lens={item.toLens()} />
         ))}
       </div>

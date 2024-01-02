@@ -12,6 +12,10 @@ type ArrayLensProxy<A extends any[]> = {
   [index: number]: LensProxy<A[number]>;
   [Symbol.iterator](): Iterator<LensProxy<A[number]>>;
   length: number;
+  map<B>(fn: (item: LensProxy<A[number]>, index: number, array: ArrayLensProxy<A>) => B): B[];
+  filter(
+    fn: (item: LensProxy<A[number]>, index: number, array: ArrayLensProxy<A>) => boolean
+  ): Array<LensProxy<A[number]>>;
 } & BaseProxy<A>;
 
 type ObjectLensProxy<A extends object> = {
@@ -164,31 +168,3 @@ export function makeProxy<A>(lens: Lens<A>) {
 
   return proxy;
 }
-
-export const mapArray = <A extends any[], B>(
-  proxy: ArrayLensProxy<A>,
-  fn: (item: LensProxy<A[number]>, index: number, array: ArrayLensProxy<A>) => B
-): B[] => {
-  const bs: B[] = [];
-
-  for (let i = 0; i < proxy.length; i++) {
-    const b = fn(proxy[i], i, proxy);
-    bs.push(b);
-  }
-
-  return bs;
-};
-
-export const filterArray = <A extends any[]>(
-  proxy: ArrayLensProxy<A>,
-  fn: (item: LensProxy<A[number]>, index: number, array: ArrayLensProxy<A>) => boolean
-): Array<LensProxy<A[number]>> => {
-  const result: Array<LensProxy<A[number]>> = [];
-
-  for (let i = 0; i < proxy.length; i++) {
-    const keep = fn(proxy[i], i, proxy);
-    if (keep) result.push(proxy[i]);
-  }
-
-  return result;
-};
