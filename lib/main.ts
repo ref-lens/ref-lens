@@ -1,5 +1,4 @@
-import { Lens, makeLens } from "./lens";
-import { makeProxy, type LensProxy } from "./proxy";
+import { Lens } from "./lens";
 import { useLens } from "./react";
 
-export { Lens, LensProxy, makeLens, makeProxy, useLens };
+export { Lens, useLens };
