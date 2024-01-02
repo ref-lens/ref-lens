@@ -1,6 +1,6 @@
 {
   "name": "ref-lens",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "type": "module",
   "description": "Lens-like data structures for React",
   "main": "dist/main.umd.js",
