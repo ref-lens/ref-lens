@@ -1,4 +1,4 @@
-import { Lens } from "./lens";
+import { Lens, makeLens } from "./lens";
 import { useLens } from "./react";
 
-export { Lens, useLens };
+export { Lens, makeLens, useLens };
