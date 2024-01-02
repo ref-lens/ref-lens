@@ -34,19 +34,19 @@ const isScalar = <A>(value: A): value is A & Scalar => {
 };
 
 const innerMake = <A>(lens: Lens<A>): LensProxy<A> => {
-  return new Proxy(function () {} as any, {
-    apply(_target, thisArg, args) {
-      return (lens.current as any).apply(thisArg, args);
+  return new Proxy((() => lens.current) as any, {
+    apply(target, thisArg, args) {
+      return target().apply(thisArg, args);
     },
 
-    get(_target, key0: string) {
+    get(target, key0: string) {
       const key = key0 as keyof A;
 
       /**
        * React devtools introspection.
        */
       if (key === "$$typeof") {
-        const a = lens.current as any;
+        const a = target();
 
         if ("$$typeof" in a) {
           return a.$$typeof;
@@ -56,7 +56,7 @@ const innerMake = <A>(lens: Lens<A>): LensProxy<A> => {
       }
 
       if (key === "toJSON") {
-        return () => lens.current;
+        return target;
       }
 
       if (key === "toLens") {
@@ -66,12 +66,12 @@ const innerMake = <A>(lens: Lens<A>): LensProxy<A> => {
       return makeProxy(lens.prop(key));
     },
 
-    ownKeys(_target) {
-      return Reflect.ownKeys(lens.current as object);
+    ownKeys(target) {
+      return Reflect.ownKeys(target());
     },
 
-    getOwnPropertyDescriptor(_target, key) {
-      const desc = Reflect.getOwnPropertyDescriptor(lens.current as object, key);
+    getOwnPropertyDescriptor(target, key) {
+      const desc = Reflect.getOwnPropertyDescriptor(target(), key);
       if (desc) {
         desc.configurable = true;
       }
@@ -90,8 +90,8 @@ const innerMake = <A>(lens: Lens<A>): LensProxy<A> => {
       return false;
     },
 
-    has(_target, key) {
-      return Reflect.has(lens.current as object, key);
+    has(target, key) {
+      return Reflect.has(target(), key);
     },
 
     isExtensible() {
