@@ -18,8 +18,8 @@ jobs:
 
       - run: npm ci
 
-      # Write the prerelease version using the commit hash
-      - run: npm version from-git --no-git-tag-version
+      - run: |
+          npm version 0.0.0-dev.$GITHUB_SHA --no-git-tag-version
 
       - run: npm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
         env:
